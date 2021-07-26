@@ -61,8 +61,16 @@ func (c *ControllerService) CreateVolume(ctx context.Context, req *csi.CreateVol
 		}, nil
 	}
 
-	// TODO rgolan the default in case of error would be non thin - change it?
-	thinProvisioning, _ := strconv.ParseBool(req.Parameters[ParameterThinProvisioning])
+	thinProvisioning, err := strconv.ParseBool(req.Parameters[ParameterThinProvisioning])
+	if req.Parameters[ParameterThinProvisioning] == "" {
+		// In case thin provisioning is not set, we default to true
+		thinProvisioning = true
+	}
+	if err != nil {
+		return nil, fmt.Errorf(
+			"failed to parse storage class field %s, expected 'true' or 'fasle' but got %s",
+			ParameterThinProvisioning, req.Parameters[ParameterThinProvisioning])
+	}
 
 	provisionedSize := req.CapacityRange.GetRequiredBytes()
 	if provisionedSize < minimumDiskSize {
