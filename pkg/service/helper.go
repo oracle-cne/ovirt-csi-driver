@@ -155,7 +155,8 @@ func getDiskByName(conn *ovirtsdk.Connection, diskName string) (*ovirtsdk.Disk, 
 }
 
 func getStorageDomainByName(conn *ovirtsdk.Connection, storageDomainName string) (*ovirtsdk.StorageDomain, error) {
-	sdByName, err := conn.SystemService().StorageDomainsService().List().Search(storageDomainName).Send()
+	searchString := fmt.Sprintf("name=%s", storageDomainName)
+	sdByName, err := conn.SystemService().StorageDomainsService().List().Search(searchString).Send()
 	if err != nil {
 		return nil, err
 	}
