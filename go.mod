@@ -6,9 +6,6 @@ require (
 	github.com/container-storage-interface/spec v1.2.0
 	github.com/golang/protobuf v1.5.2
 	github.com/kubernetes-csi/csi-lib-utils v0.7.0
-	github.com/onsi/ginkgo v1.16.4 // indirect
-	github.com/onsi/gomega v1.13.0 // indirect
-	github.com/ovirt/go-ovirt v0.0.0-20210809163552-d4276e35d3db // indirect
 	github.com/ovirt/go-ovirt-client v0.7.1
 	github.com/ovirt/go-ovirt-client-log-klog v1.0.0
 	github.com/ovirt/go-ovirt-client-log/v2 v2.1.0
@@ -23,5 +20,3 @@ require (
 	k8s.io/utils v0.0.0-20210527160623-6fdb442a123b
 	sigs.k8s.io/controller-runtime v0.9.2
 )
-
-replace github.com/ovirt/go-ovirt-client v0.6.1-0.20210927190907-b4e32fab2754 => github.com/Gal-Zaidman/go-ovirt-client v0.0.0-20211012125710-ab43b89c03e1
