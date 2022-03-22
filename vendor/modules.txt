@@ -59,12 +59,7 @@ github.com/matttproud/golang_protobuf_extensions/pbutil
 github.com/modern-go/concurrent
 # github.com/modern-go/reflect2 v1.0.1
 github.com/modern-go/reflect2
-# github.com/onsi/ginkgo v1.16.4
-## explicit
-# github.com/onsi/gomega v1.13.0
-## explicit
 # github.com/ovirt/go-ovirt v0.0.0-20210809163552-d4276e35d3db
-## explicit
 github.com/ovirt/go-ovirt
 # github.com/ovirt/go-ovirt-client v0.7.1
 ## explicit
@@ -479,4 +474,3 @@ sigs.k8s.io/structured-merge-diff/v4/typed
 sigs.k8s.io/structured-merge-diff/v4/value
 # sigs.k8s.io/yaml v1.2.0
 sigs.k8s.io/yaml
-# github.com/ovirt/go-ovirt-client v0.6.1-0.20210927190907-b4e32fab2754 => github.com/Gal-Zaidman/go-ovirt-client v0.0.0-20211012125710-ab43b89c03e1
