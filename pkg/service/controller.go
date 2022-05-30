@@ -87,7 +87,7 @@ func (c *ControllerService) CreateVolume(ctx context.Context, req *csi.CreateVol
 	return &csi.CreateVolumeResponse{
 		Volume: &csi.Volume{
 			CapacityBytes: int64(disk.ProvisionedSize()),
-			VolumeId:      disk.ID(),
+			VolumeId:      string(disk.ID()),
 		},
 	}, nil
 }
@@ -148,7 +148,7 @@ func handleCreateVolumeImageFormat(
 
 //DeleteVolume removed the disk from oVirt
 func (c *ControllerService) DeleteVolume(ctx context.Context, req *csi.DeleteVolumeRequest) (*csi.DeleteVolumeResponse, error) {
-	vId := req.VolumeId
+	vId := ovirtclient.DiskID(req.VolumeId)
 	if len(vId) == 0 {
 		return nil, fmt.Errorf("error required paramater VolumeId wasn't set")
 	}
@@ -180,11 +180,11 @@ func (c *ControllerService) DeleteVolume(ctx context.Context, req *csi.DeleteVol
 // ControllerPublishVolume takes a volume, which is an oVirt disk, and attaches it to a node, which is an oVirt VM.
 func (c *ControllerService) ControllerPublishVolume(
 	ctx context.Context, req *csi.ControllerPublishVolumeRequest) (*csi.ControllerPublishVolumeResponse, error) {
-	vId := req.VolumeId
+	vId := ovirtclient.DiskID(req.VolumeId)
 	if len(vId) == 0 {
 		return nil, fmt.Errorf("error required request paramater VolumeId wasn't set")
 	}
-	nId := req.NodeId
+	nId := ovirtclient.VMID(req.NodeId)
 	if len(nId) == 0 {
 		return nil, fmt.Errorf("error required request paramater NodeId wasn't set")
 	}
@@ -225,11 +225,11 @@ func (c *ControllerService) ControllerPublishVolume(
 
 //ControllerUnpublishVolume detaches the disk from the VM.
 func (c *ControllerService) ControllerUnpublishVolume(ctx context.Context, req *csi.ControllerUnpublishVolumeRequest) (*csi.ControllerUnpublishVolumeResponse, error) {
-	vId := req.VolumeId
+	vId := ovirtclient.DiskID(req.VolumeId)
 	if len(vId) == 0 {
 		return nil, fmt.Errorf("error required request paramater VolumeId wasn't set")
 	}
-	nId := req.NodeId
+	nId := ovirtclient.VMID(req.NodeId)
 	if len(nId) == 0 {
 		return nil, fmt.Errorf("error required request paramater NodeId wasn't set")
 	}
@@ -285,7 +285,7 @@ func (c *ControllerService) ListSnapshots(context.Context, *csi.ListSnapshotsReq
 
 //ControllerExpandVolume
 func (c *ControllerService) ControllerExpandVolume(ctx context.Context, req *csi.ControllerExpandVolumeRequest) (*csi.ControllerExpandVolumeResponse, error) {
-	volumeID := req.GetVolumeId()
+	volumeID := ovirtclient.DiskID(req.GetVolumeId())
 	if len(volumeID) == 0 {
 		return nil, status.Error(codes.InvalidArgument, "Volume ID not provided")
 	}
@@ -337,7 +337,11 @@ func (c *ControllerService) ControllerExpandVolume(ctx context.Context, req *csi
 		NodeExpansionRequired: nodeExpansionRequired}, nil
 }
 
-func (c *ControllerService) isNodeExpansionRequired(ctx context.Context, vc *csi.VolumeCapability, volumeID string) (bool, error) {
+func (c *ControllerService) isNodeExpansionRequired(
+	ctx context.Context,
+	vc *csi.VolumeCapability,
+	volumeID ovirtclient.DiskID,
+) (bool, error) {
 	// If this is a raw block device, no expansion should be necessary on the node
 	if vc != nil && vc.GetBlock() != nil {
 		return false, nil
@@ -345,8 +349,10 @@ func (c *ControllerService) isNodeExpansionRequired(ctx context.Context, vc *csi
 	// If disk is not attached to any VM then no need to expand
 	diskAttachment, err := findDiskAttachmentByDiskInCluster(ctx, c.ovirtClient, volumeID)
 	if err != nil {
-		return false, fmt.Errorf("error while searching disk attachment for volume %s, error %w",
-			volumeID, err)
+		return false, fmt.Errorf(
+			"error while searching disk attachment for volume %s, error %w",
+			volumeID, err,
+		)
 	}
 	if diskAttachment == nil {
 		return false, nil
