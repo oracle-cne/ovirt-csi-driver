@@ -199,8 +199,8 @@ func TestControllerUnpublishVolume(t *testing.T) {
 
 	controller := service.NewOvirtCSIDriver(helper.GetClient(), vmId)
 	_, err = controller.ControllerUnpublishVolume(context.Background(), &csi.ControllerUnpublishVolumeRequest{
-		VolumeId: diskId,
-		NodeId:   vmId,
+		VolumeId: string(diskId),
+		NodeId:   string(vmId),
 	})
 	if err != nil {
 		t.Fatalf("failed to unpublish the volume (%v)", err)
@@ -243,8 +243,8 @@ func TestControllerUnpublishVolumeTwice(t *testing.T) {
 
 	// Unpublish volume.
 	_, err = controller.ControllerUnpublishVolume(context.Background(), &csi.ControllerUnpublishVolumeRequest{
-		VolumeId: diskId,
-		NodeId:   vmId,
+		VolumeId: string(diskId),
+		NodeId:   string(vmId),
 	})
 	if err != nil {
 		t.Fatalf("failed to unpublish the volume (%v)", err)
@@ -252,8 +252,8 @@ func TestControllerUnpublishVolumeTwice(t *testing.T) {
 
 	// Unpublish volume second time, should succeed.
 	_, err = controller.ControllerUnpublishVolume(context.Background(), &csi.ControllerUnpublishVolumeRequest{
-		VolumeId: diskId,
-		NodeId:   vmId,
+		VolumeId: string(diskId),
+		NodeId:   string(vmId),
 	})
 	if err != nil {
 		t.Fatalf("failed to unpublish volume which was already unpublished (%v)", err)
@@ -287,7 +287,7 @@ func TestControllerExpandVolume(t *testing.T) {
 
 	expandedSize := int64(2 * disk.TotalSize())
 	expandResp, err := controller.ControllerExpandVolume(context.Background(), &csi.ControllerExpandVolumeRequest{
-		VolumeId: diskId,
+		VolumeId: string(diskId),
 		CapacityRange: &csi.CapacityRange{
 			RequiredBytes: expandedSize,
 			LimitBytes:    expandedSize,
@@ -378,18 +378,24 @@ func createTestVolume(helper ovirtclient.TestHelper, controller *service.OvirtCS
 	return createVolumeResponse, nil
 }
 
-func publishTestVolume(helper ovirtclient.TestHelper, publishReq *csi.ControllerPublishVolumeRequest) (string, string, error) {
+func publishTestVolume(helper ovirtclient.TestHelper, publishReq *csi.ControllerPublishVolumeRequest) (
+	ovirtclient.VMID,
+	ovirtclient.DiskID,
+	error,
+) {
 	if publishReq.NodeId == "" {
 		vm, err := helper.GetClient().CreateVM(
 			helper.GetClusterID(),
 			helper.GetBlankTemplateID(),
-			ovirtclient.CreateVMParams().MustWithName("test"))
+			"test",
+			nil,
+		)
 		if err != nil {
 			return "", "", err
 		}
-		publishReq.NodeId = vm.ID()
+		publishReq.NodeId = string(vm.ID())
 	}
-	controller := service.NewOvirtCSIDriver(helper.GetClient(), publishReq.NodeId)
+	controller := service.NewOvirtCSIDriver(helper.GetClient(), ovirtclient.VMID(publishReq.NodeId))
 	if publishReq.VolumeId == "" {
 		createVolumeResponse, err := createTestVolume(helper, controller)
 		if err != nil {
@@ -403,7 +409,7 @@ func publishTestVolume(helper ovirtclient.TestHelper, publishReq *csi.Controller
 		return "", "", err
 	}
 
-	return publishReq.NodeId, publishReq.VolumeId, nil
+	return ovirtclient.VMID(publishReq.NodeId), ovirtclient.DiskID(publishReq.VolumeId), nil
 }
 
 func assertHasCapability(caps []*csi.ControllerServiceCapability, capType csi.ControllerServiceCapability_RPC_Type, t *testing.T) {

@@ -9,6 +9,7 @@ import (
 
 	"github.com/ovirt/csi-driver/internal/ovirt"
 	"github.com/ovirt/csi-driver/pkg/service"
+	ovirtclient "github.com/ovirt/go-ovirt-client"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/klog"
@@ -72,7 +73,7 @@ func handle() {
 	}()
 	// get the node object by name and pass the VM ID because it is the node
 	// id from the storage perspective. It will be used for attaching disks
-	var nodeId string
+	var nodeId ovirtclient.VMID
 	clientSet, err := kubernetes.NewForConfig(restConfig)
 	if err != nil {
 		klog.Fatal(err)
@@ -83,7 +84,7 @@ func handle() {
 		if err != nil {
 			klog.Fatal(err)
 		}
-		nodeId = get.Status.NodeInfo.SystemUUID
+		nodeId = ovirtclient.VMID(get.Status.NodeInfo.SystemUUID)
 	}
 
 	driver := service.NewOvirtCSIDriver(ovirtClient, nodeId)

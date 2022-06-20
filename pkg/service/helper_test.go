@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	ovirtclient "github.com/ovirt/go-ovirt-client"
-	ovirtclientlog "github.com/ovirt/go-ovirt-client-log/v2"
+	ovirtclientlog "github.com/ovirt/go-ovirt-client-log/v3"
 )
 
 func getMockHelper(t *testing.T) ovirtclient.TestHelper {
@@ -12,11 +12,8 @@ func getMockHelper(t *testing.T) ovirtclient.TestHelper {
 		"https://localhost/ovirt-engine/api",
 		"admin@internal",
 		"",
+		nil,
 		ovirtclient.TLS().Insecure(),
-		"",
-		"",
-		"",
-		"",
 		true,
 		ovirtclientlog.NewTestLogger(t),
 	)

@@ -19,8 +19,10 @@ func isNotFound(err error) bool {
 	return false
 }
 
-func diskAttachmentByVmAndDisk(ctx context.Context, ovirtClient ovirtclient.Client,
-	vmId string, diskId string) (ovirtclient.DiskAttachment, error) {
+func diskAttachmentByVmAndDisk(
+	ctx context.Context, ovirtClient ovirtclient.Client,
+	vmId ovirtclient.VMID, diskId ovirtclient.DiskID,
+) (ovirtclient.DiskAttachment, error) {
 	attachments, err := ovirtClient.ListDiskAttachments(vmId, ovirtclient.ContextStrategy(ctx))
 	if err != nil {
 		return nil, fmt.Errorf("failed to get disk attachment by disk %s for VM %s, error: %w", diskId, vmId, err)
@@ -33,11 +35,21 @@ func diskAttachmentByVmAndDisk(ctx context.Context, ovirtClient ovirtclient.Clie
 	return nil, nil
 }
 
-func findDiskAttachmentByDiskInVMs(ctx context.Context, ovirtClient ovirtclient.Client, diskId string, vms []ovirtclient.VM) (ovirtclient.DiskAttachment, error) {
+func findDiskAttachmentByDiskInVMs(
+	ctx context.Context,
+	ovirtClient ovirtclient.Client,
+	diskId ovirtclient.DiskID,
+	vms []ovirtclient.VM,
+) (ovirtclient.DiskAttachment, error) {
 	for _, vm := range vms {
 		diskAttachment, err := diskAttachmentByVmAndDisk(ctx, ovirtClient, vm.ID(), diskId)
 		if err != nil {
-			return nil, fmt.Errorf("error while searching disk attachment for disk %s in VM %s, error: %w", diskId, vm.ID(), err)
+			return nil, fmt.Errorf(
+				"error while searching disk attachment for disk %s in VM %s, error: %w",
+				diskId,
+				vm.ID(),
+				err,
+			)
 		}
 		if diskAttachment != nil {
 			return diskAttachment, nil
@@ -46,7 +58,11 @@ func findDiskAttachmentByDiskInVMs(ctx context.Context, ovirtClient ovirtclient.
 	return nil, nil
 }
 
-func findDiskAttachmentByDiskInCluster(ctx context.Context, ovirtClient ovirtclient.Client, diskId string) (ovirtclient.DiskAttachment, error) {
+func findDiskAttachmentByDiskInCluster(
+	ctx context.Context,
+	ovirtClient ovirtclient.Client,
+	diskId ovirtclient.DiskID,
+) (ovirtclient.DiskAttachment, error) {
 	vms, err := ovirtClient.ListVMs(ovirtclient.ContextStrategy(ctx))
 	if err != nil {
 		return nil, fmt.Errorf("error while listing VMs %w", err)
