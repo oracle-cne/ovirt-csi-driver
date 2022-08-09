@@ -9,7 +9,7 @@ import (
 
 	"github.com/ovirt/csi-driver/internal/ovirt"
 	"github.com/ovirt/csi-driver/pkg/service"
-	ovirtclient "github.com/ovirt/go-ovirt-client"
+	ovirtclient "github.com/ovirt/go-ovirt-client/v2"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/klog"
