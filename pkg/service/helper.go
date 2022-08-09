@@ -3,7 +3,7 @@ package service
 import (
 	"fmt"
 
-	ovirtclient "github.com/ovirt/go-ovirt-client"
+	ovirtclient "github.com/ovirt/go-ovirt-client/v2"
 	"github.com/pkg/errors"
 	"golang.org/x/net/context"
 )
