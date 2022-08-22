@@ -1,0 +1,16 @@
+---
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: ovirt-csi-sc
+  namespace: ovirt-cluster-csi-drivers
+  annotations:
+    storageclass.kubernetes.io/is-default-class: "true"
+provisioner: csi.ovirt.org
+reclaimPolicy: "Delete"
+volumeBindingMode: WaitForFirstConsumer
+allowVolumeExpansion: true
+parameters:
+  storageDomainName: "OCP_STORAGE"
+  thinProvisioning: "true"
+  fsType: "ext4"

@@ -1,0 +1,206 @@
+# RoleBindings for ovirt-csi-driver-controller-sa
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  labels:
+    app.kubernetes.io/instance: ovirt.csi.k8s.io
+    app.kubernetes.io/part-of: csi-driver-ovirt
+    app.kubernetes.io/name: ovirt-csi-driver
+    app.kubernetes.io/component: attacher-cluster-role
+  name: csi-ovirtplugin-attacher-cluster-role
+  namespace: ovirt-cluster-csi-drivers
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: external-attacher-runner
+subjects:
+- kind: ServiceAccount
+  name: ovirt-csi-driver-controller-sa
+  namespace: ovirt-cluster-csi-drivers
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  labels:
+    app.kubernetes.io/instance: ovirt.csi.k8s.io
+    app.kubernetes.io/part-of: csi-driver-ovirt
+    app.kubernetes.io/name: ovirt-csi-driver
+    app.kubernetes.io/component: health-monitor-controller-cluster-role
+  name: csi-ovirtplugin-health-monitor-controller-cluster-role
+  namespace: ovirt-cluster-csi-drivers
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: external-health-monitor-controller-runner
+subjects:
+- kind: ServiceAccount
+  name: ovirt-csi-driver-controller-sa
+  namespace: ovirt-cluster-csi-drivers
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  labels:
+    app.kubernetes.io/instance: ovirt.csi.k8s.io
+    app.kubernetes.io/part-of: csi-driver-ovirt
+    app.kubernetes.io/name: ovirt-csi-driver
+    app.kubernetes.io/component: provisioner-cluster-role
+  name: csi-ovirtplugin-provisioner-cluster-role
+  namespace: ovirt-cluster-csi-drivers
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: external-provisioner-runner
+subjects:
+- kind: ServiceAccount
+  name: ovirt-csi-driver-controller-sa
+  namespace: ovirt-cluster-csi-drivers
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  labels:
+    app.kubernetes.io/instance: ovirt.csi.k8s.io
+    app.kubernetes.io/part-of: csi-driver-ovirt
+    app.kubernetes.io/name: ovirt-csi-driver
+    app.kubernetes.io/component: resizer-cluster-role
+  name: csi-ovirtplugin-resizer-cluster-role
+  namespace: ovirt-cluster-csi-drivers
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: external-resizer-runner
+subjects:
+- kind: ServiceAccount
+  name: ovirt-csi-driver-controller-sa
+  namespace: ovirt-cluster-csi-drivers
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  labels:
+    app.kubernetes.io/instance: ovirt.csi.k8s.io
+    app.kubernetes.io/part-of: csi-driver-ovirt
+    app.kubernetes.io/name: ovirt-csi-driver
+    app.kubernetes.io/component: attacher-role
+  name: csi-ovirtplugin-attacher-role
+  namespace: ovirt-cluster-csi-drivers
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: external-attacher-cfg
+subjects:
+- kind: ServiceAccount
+  name: ovirt-csi-driver-controller-sa
+  namespace: ovirt-cluster-csi-drivers
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  labels:
+    app.kubernetes.io/instance: ovirt.csi.k8s.io
+    app.kubernetes.io/part-of: csi-driver-ovirt
+    app.kubernetes.io/name: ovirt-csi-driver
+    app.kubernetes.io/component: health-monitor-controller-role
+  name: csi-ovirtplugin-health-monitor-controller-role
+  namespace: ovirt-cluster-csi-drivers
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: external-health-monitor-controller-cfg
+subjects:
+- kind: ServiceAccount
+  name: ovirt-csi-driver-controller-sa
+  namespace: ovirt-cluster-csi-drivers
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  labels:
+    app.kubernetes.io/instance: ovirt.csi.k8s.io
+    app.kubernetes.io/part-of: csi-driver-ovirt
+    app.kubernetes.io/name: ovirt-csi-driver
+    app.kubernetes.io/component: provisioner-role
+  name: csi-ovirtplugin-provisioner-role
+  namespace: ovirt-cluster-csi-drivers
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: external-provisioner-cfg
+subjects:
+- kind: ServiceAccount
+  name: ovirt-csi-driver-controller-sa
+  namespace: ovirt-cluster-csi-drivers
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  labels:
+    app.kubernetes.io/instance: ovirt.csi.k8s.io
+    app.kubernetes.io/part-of: csi-driver-ovirt
+    app.kubernetes.io/name: ovirt-csi-driver
+    app.kubernetes.io/component: resizer-role
+  name: csi-ovirtplugin-resizer-role
+  namespace: ovirt-cluster-csi-drivers
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: external-resizer-cfg
+subjects:
+- kind: ServiceAccount
+  name: ovirt-csi-driver-controller-sa
+  namespace: ovirt-cluster-csi-drivers
+
+# ovirt-csi-driver-node-sa
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  labels:
+    app.kubernetes.io/instance: ovirt.csi.k8s.io
+    app.kubernetes.io/part-of: csi-driver-ovirt
+    app.kubernetes.io/name: ovirt-csi-driver
+    app.kubernetes.io/component: health-monitor-controller-cluster-role
+  name: csi-ovirtplugin-node-health-monitor-controller-cluster-role
+  namespace: ovirt-cluster-csi-drivers
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: external-health-monitor-controller-runner
+subjects:
+- kind: ServiceAccount
+  name: ovirt-csi-driver-node-sa
+  namespace: ovirt-cluster-csi-drivers
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  labels:
+    app.kubernetes.io/instance: ovirt.csi.k8s.io
+    app.kubernetes.io/part-of: csi-driver-ovirt
+    app.kubernetes.io/name: ovirt-csi-driver
+    app.kubernetes.io/component: health-monitor-controller-role
+  name: csi-ovirtplugin-node-health-monitor-controller-role
+  namespace: ovirt-cluster-csi-drivers
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: external-health-monitor-controller-cfg
+subjects:
+- kind: ServiceAccount
+  name: ovirt-csi-driver-node-sa
+  namespace: ovirt-cluster-csi-drivers
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: ovirt-node-privileged-binding
+roleRef:
+  kind: ClusterRole
+  name: ovirt-privileged-role
+  apiGroup: rbac.authorization.k8s.io
+subjects:
+- kind: ServiceAccount
+  name: ovirt-csi-driver-node-sa
+  namespace: ovirt-cluster-csi-drivers
