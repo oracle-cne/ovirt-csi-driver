@@ -21,7 +21,7 @@ import (
 )
 
 type NodeService struct {
-	nodeId      string
+	nodeId      ovirtclient.VMID
 	ovirtClient ovirtclient.Client
 }
 
@@ -42,7 +42,7 @@ func baseDevicePathByInterface(diskInterface ovirtclient.DiskInterface) (string,
 }
 
 func (n *NodeService) NodeStageVolume(ctx context.Context, req *csi.NodeStageVolumeRequest) (*csi.NodeStageVolumeResponse, error) {
-	vId := req.VolumeId
+	vId := ovirtclient.DiskID(req.VolumeId)
 	if vId == "" {
 		return nil, fmt.Errorf("NodeStageVolumeRequest didn't contain required field VolumeId")
 	}
@@ -54,7 +54,7 @@ func (n *NodeService) NodeStageVolume(ctx context.Context, req *csi.NodeStageVol
 		return &csi.NodeStageVolumeResponse{}, nil
 	}
 
-	device, err := n.getDeviceByAttachmentId(ctx, vId, n.nodeId)
+	device, err := n.getDeviceByAttachmentId(ctx, vId, ovirtclient.VMID(n.nodeId))
 	if err != nil {
 		klog.Errorf("Failed to fetch device by attachment-id for volume %s on node %s", vId, n.nodeId)
 		return nil, err
@@ -88,11 +88,11 @@ func (n *NodeService) NodeUnstageVolume(_ context.Context, _ *csi.NodeUnstageVol
 }
 
 func (n *NodeService) NodePublishVolume(ctx context.Context, req *csi.NodePublishVolumeRequest) (*csi.NodePublishVolumeResponse, error) {
-	vId := req.VolumeId
+	vId := ovirtclient.DiskID(req.VolumeId)
 	if vId == "" {
 		return nil, fmt.Errorf("NodeStageVolumeRequest didn't contain required field VolumeId")
 	}
-	device, err := n.getDeviceByAttachmentId(ctx, vId, n.nodeId)
+	device, err := n.getDeviceByAttachmentId(ctx, vId, ovirtclient.VMID(n.nodeId))
 	if err != nil {
 		klog.Errorf("Failed to fetch device by attachment-id for volume %s on node %s", vId, n.nodeId)
 		return nil, err
@@ -257,7 +257,7 @@ func (n *NodeService) NodeExpandVolume(_ context.Context, req *csi.NodeExpandVol
 }
 
 func (n *NodeService) NodeGetInfo(context.Context, *csi.NodeGetInfoRequest) (*csi.NodeGetInfoResponse, error) {
-	return &csi.NodeGetInfoResponse{NodeId: n.nodeId}, nil
+	return &csi.NodeGetInfoResponse{NodeId: string(n.nodeId)}, nil
 }
 
 func (n *NodeService) NodeGetCapabilities(context.Context, *csi.NodeGetCapabilitiesRequest) (*csi.NodeGetCapabilitiesResponse, error) {
@@ -277,7 +277,11 @@ func (n *NodeService) NodeGetCapabilities(context.Context, *csi.NodeGetCapabilit
 	return &csi.NodeGetCapabilitiesResponse{Capabilities: caps}, nil
 }
 
-func (n *NodeService) getDeviceByAttachmentId(ctx context.Context, volumeID, nodeID string) (string, error) {
+func (n *NodeService) getDeviceByAttachmentId(
+	ctx context.Context,
+	volumeID ovirtclient.DiskID,
+	nodeID ovirtclient.VMID,
+) (string, error) {
 	attachment, err := diskAttachmentByVmAndDisk(ctx, n.ovirtClient, nodeID, volumeID)
 	if err != nil {
 		return "", fmt.Errorf("failed finding disk attachment, error: %w", err)
@@ -302,7 +306,7 @@ func (n *NodeService) getDeviceByAttachmentId(ctx context.Context, volumeID, nod
 	}
 
 	// verify the device path exists
-	device := baseDevicePath + disk.ID()
+	device := baseDevicePath + string(disk.ID())
 	_, err = os.Stat(device)
 	if err == nil {
 		klog.Infof("Device path %s exists", device)
@@ -311,7 +315,7 @@ func (n *NodeService) getDeviceByAttachmentId(ctx context.Context, volumeID, nod
 
 	if os.IsNotExist(err) {
 		// try with short disk ID, where the serial ID is only 20 chars long (controlled by udev)
-		shortDevice := baseDevicePath + disk.ID()[:20]
+		shortDevice := baseDevicePath + string(disk.ID())[:20]
 		_, err = os.Stat(shortDevice)
 		if err == nil {
 			klog.Infof("Device path %s exists", shortDevice)
