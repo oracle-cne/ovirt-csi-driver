@@ -18,7 +18,7 @@ const (
 	minimumDiskSize            = 1 * 1024 * 1024
 )
 
-//ControllerService implements the controller interface
+// ControllerService implements the controller interface
 type ControllerService struct {
 	ovirtClient ovirtclient.Client
 }
@@ -29,7 +29,7 @@ var ControllerCaps = []csi.ControllerServiceCapability_RPC_Type{
 	csi.ControllerServiceCapability_RPC_EXPAND_VOLUME,
 }
 
-//CreateVolume creates the disk for the request, unattached from any VM
+// CreateVolume creates the disk for the request, unattached from any VM
 func (c *ControllerService) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest) (*csi.CreateVolumeResponse, error) {
 	klog.Infof("Creating disk %s", req.Name)
 	storageDomainName := req.Parameters[ParameterStorageDomainName]
@@ -115,9 +115,6 @@ func (c *ControllerService) createDisk(
 	if err != nil {
 		return nil, fmt.Errorf("failed searching for storage domain with name %s, error: %w", storageDomainName, err)
 	}
-	if sd == nil {
-		return nil, fmt.Errorf("failed searching for storage domain with name %s, error: %w", storageDomainName, err)
-	}
 	imageFormat := handleCreateVolumeImageFormat(sd.StorageType(), thinProvisioning)
 
 	disk, err := c.ovirtClient.CreateDisk(
@@ -146,7 +143,7 @@ func handleCreateVolumeImageFormat(
 	}
 }
 
-//DeleteVolume removed the disk from oVirt
+// DeleteVolume removed the disk from oVirt
 func (c *ControllerService) DeleteVolume(ctx context.Context, req *csi.DeleteVolumeRequest) (*csi.DeleteVolumeResponse, error) {
 	vId := ovirtclient.DiskID(req.VolumeId)
 	if len(vId) == 0 {
@@ -223,7 +220,7 @@ func (c *ControllerService) ControllerPublishVolume(
 	return &csi.ControllerPublishVolumeResponse{}, nil
 }
 
-//ControllerUnpublishVolume detaches the disk from the VM.
+// ControllerUnpublishVolume detaches the disk from the VM.
 func (c *ControllerService) ControllerUnpublishVolume(ctx context.Context, req *csi.ControllerUnpublishVolumeRequest) (*csi.ControllerUnpublishVolumeResponse, error) {
 	vId := ovirtclient.DiskID(req.VolumeId)
 	if len(vId) == 0 {
@@ -253,37 +250,37 @@ func (c *ControllerService) ControllerUnpublishVolume(ctx context.Context, req *
 	return &csi.ControllerUnpublishVolumeResponse{}, nil
 }
 
-//ValidateVolumeCapabilities
+// ValidateVolumeCapabilities
 func (c *ControllerService) ValidateVolumeCapabilities(context.Context, *csi.ValidateVolumeCapabilitiesRequest) (*csi.ValidateVolumeCapabilitiesResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "")
 }
 
-//ListVolumes
+// ListVolumes
 func (c *ControllerService) ListVolumes(context.Context, *csi.ListVolumesRequest) (*csi.ListVolumesResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "")
 }
 
-//GetCapacity
+// GetCapacity
 func (c *ControllerService) GetCapacity(context.Context, *csi.GetCapacityRequest) (*csi.GetCapacityResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "")
 }
 
-//CreateSnapshot
+// CreateSnapshot
 func (c *ControllerService) CreateSnapshot(context.Context, *csi.CreateSnapshotRequest) (*csi.CreateSnapshotResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "")
 }
 
-//DeleteSnapshot
+// DeleteSnapshot
 func (c *ControllerService) DeleteSnapshot(context.Context, *csi.DeleteSnapshotRequest) (*csi.DeleteSnapshotResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "")
 }
 
-//ListSnapshots
+// ListSnapshots
 func (c *ControllerService) ListSnapshots(context.Context, *csi.ListSnapshotsRequest) (*csi.ListSnapshotsResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "")
 }
 
-//ControllerExpandVolume
+// ControllerExpandVolume
 func (c *ControllerService) ControllerExpandVolume(ctx context.Context, req *csi.ControllerExpandVolumeRequest) (*csi.ControllerExpandVolumeResponse, error) {
 	volumeID := ovirtclient.DiskID(req.GetVolumeId())
 	if len(volumeID) == 0 {
@@ -360,7 +357,7 @@ func (c *ControllerService) isNodeExpansionRequired(
 	return true, nil
 }
 
-//ControllerGetCapabilities
+// ControllerGetCapabilities
 func (c *ControllerService) ControllerGetCapabilities(context.Context, *csi.ControllerGetCapabilitiesRequest) (*csi.ControllerGetCapabilitiesResponse, error) {
 	caps := make([]*csi.ControllerServiceCapability, 0, len(ControllerCaps))
 	for _, capability := range ControllerCaps {

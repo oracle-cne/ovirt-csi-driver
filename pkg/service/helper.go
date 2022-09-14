@@ -86,7 +86,7 @@ func getStorageDomainByName(
 			return sd, nil
 		}
 	}
-	return nil, nil
+	return nil, errors.New("No storage domain found")
 }
 
 func isFileDomain(storageType ovirtclient.StorageDomainType) bool {
