@@ -35,7 +35,7 @@ make build
 install -m 755 bin/%{app_name} %{buildroot}/%{app_name}
 
 %files
-%license LICENSE
+%license LICENSE olm/SECURITY.md
 /%{app_name}
 
 %changelog
