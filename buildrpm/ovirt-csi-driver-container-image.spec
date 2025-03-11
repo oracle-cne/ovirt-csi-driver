@@ -19,8 +19,6 @@ License:        Apache 2.0
 Group:          Development/Tools
 Url:            https://github.com/oracle-cne/ovirt-csi-driver.git
 Source:         %{name}-%{version}.tar.bz2
-BuildRequires:  golang
-BuildRequires:	make
 
 %description
 CSI driver for oVirt
