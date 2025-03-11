@@ -1,7 +1,5 @@
 FROM ghcr.io/oracle/oraclelinux:8-slim
 
-ARG operatorImage=/cluster-api-provider-olvm/olvm-capi-operator
-
 COPY rpms /tmp/
 
 RUN microdnf update && \
