@@ -41,7 +41,7 @@ podman save -o %{app_name}.tar %{docker_image}
 %__install -D -m 644 %{app_name}.tar %{buildroot}/usr/local/share/olcne/%{app_name}.tar
 
 %files
-%license LICENSE olm/SECURITY.md
+%license LICENSE THIRD_PARTY_LICENSES.txt olm/SECURITY.md
 /usr/local/share/olcne/%{app_name}.tar
 
 %changelog
