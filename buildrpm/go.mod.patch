@@ -1,0 +1,15 @@
+diff --git go.mod go.mod
+index a81a290..3daa24d 100644
+--- go.mod
++++ go.mod
+@@ -63,3 +63,10 @@ require (
+ 	sigs.k8s.io/structured-merge-diff/v4 v4.1.0 // indirect
+ 	sigs.k8s.io/yaml v1.2.0 // indirect
+ )
++
++replace (
++	golang.org/x/net => golang.org/x/net v0.34.0
++	google.golang.org/grpc => google.golang.org/grpc v1.64.1
++	google.golang.org/protobuf => google.golang.org/protobuf v1.36.2
++	gopkg.in/yaml.v3 => gopkg.in/yaml.v3 v3.0.0-20220521103104-8f96da9f5d5e
++)
