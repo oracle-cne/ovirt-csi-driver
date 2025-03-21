@@ -26,11 +26,11 @@ var (
 )
 
 func init() {
-	flag.Set("logtostderr", "true")
 	klog.InitFlags(flag.CommandLine)
 }
 
 func main() {
+	flag.Set("logtostderr", "true")
 	flag.Parse()
 	rand.Seed(time.Now().UnixNano())
 	handle()
