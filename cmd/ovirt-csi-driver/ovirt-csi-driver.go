@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"flag"
+	"fmt"
 	"math/rand"
 	"os"
 	"time"
@@ -54,6 +55,24 @@ func handle() {
 		klog.Fatal(err)
 	}
 
+	klog.Infof("Kubeconfig: %s", restConfig.String())
+	//klog.V(2).Infof("Kubeconfig: %s", restConfig.String())
+
+	clientSet, err := kubernetes.NewForConfig(restConfig)
+	if err != nil {
+		klog.Fatal(err)
+	}
+
+	klog.Infof("Testing access to Kubernets API server")
+	nodeList, err := clientSet.CoreV1().Nodes().List(context.Background(), metav1.ListOptions{})
+	if err != nil {
+		klog.Fatal(err)
+	}
+	if len(nodeList.Items) == 0 {
+		klog.Fatal(fmt.Errorf("no nodes found in Kubernetes cluste"))
+	}
+	klog.Infof("Found %n nodes in cluseter", len(nodeList.Items))
+
 	opts := manager.Options{
 		Namespace:          *namespace,
 		MetricsBindAddress: "0",
@@ -74,10 +93,6 @@ func handle() {
 	// get the node object by name and pass the VM ID because it is the node
 	// id from the storage perspective. It will be used for attaching disks
 	var nodeId ovirtclient.VMID
-	clientSet, err := kubernetes.NewForConfig(restConfig)
-	if err != nil {
-		klog.Fatal(err)
-	}
 
 	if *nodeName != "" {
 		get, err := clientSet.CoreV1().Nodes().Get(context.Background(), *nodeName, metav1.GetOptions{})
