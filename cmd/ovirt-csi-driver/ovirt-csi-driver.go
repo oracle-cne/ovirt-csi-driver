@@ -56,21 +56,11 @@ func handle() {
 	if err != nil {
 		klog.Fatal(err)
 	}
-
-	klog.Infof("Printing rest config\n")
-
-	klog.Infof("Kubeconfig: %s\n", restConfig.String())
-	//klog.V(2).Infof("Kubeconfig: %s", restConfig.String())
-
+	
 	clientSet, err := kubernetes.NewForConfig(restConfig)
 	if err != nil {
 		klog.Infof("error getting rest config")
 		klog.Fatal(err)
-	}
-	klog.Info("Sleeping\n")
-
-	for i := 1; i < 1000; i++ {
-		time.Sleep(60 * time.Second)
 	}
 
 	klog.Infof("Testing access to Kubernets API server\n")
