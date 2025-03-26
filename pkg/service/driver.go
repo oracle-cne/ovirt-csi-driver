@@ -38,8 +38,9 @@ func NewOvirtCSIDriver(ovirtClient ovirtclient.Client, nodeId ovirtclient.VMID) 
 
 		// node plugin
 		d = &OvirtCSIDriver{
-			NodeService: &NodeService{nodeId: nodeId, ovirtClient: ovirtClient},
-			ovirtClient: ovirtClient,
+			IdentityService: &IdentityService{ovirtClient},
+			NodeService:     &NodeService{nodeId: nodeId, ovirtClient: ovirtClient},
+			ovirtClient:     ovirtClient,
 		}
 	}
 
