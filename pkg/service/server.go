@@ -100,12 +100,15 @@ func (s *nonBlockingGRPCServer) serve(endpoint string, ids csi.IdentityServer, c
 	s.server = server
 
 	if ids != nil {
+		klog.Infof("Registering Identity Server")
 		csi.RegisterIdentityServer(server, ids)
 	}
 	if cs != nil {
+		klog.Infof("Registering Controller Server")
 		csi.RegisterControllerServer(server, cs)
 	}
 	if ns != nil {
+		klog.Infof("Registering Node Server")
 		csi.RegisterNodeServer(server, ns)
 	}
 

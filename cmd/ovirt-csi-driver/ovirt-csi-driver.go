@@ -56,7 +56,7 @@ func handle() {
 	if err != nil {
 		klog.Fatal(err)
 	}
-	
+
 	clientSet, err := kubernetes.NewForConfig(restConfig)
 	if err != nil {
 		klog.Infof("error getting rest config")
