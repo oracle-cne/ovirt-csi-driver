@@ -49,29 +49,39 @@ func handle() {
 		klog.Fatalf("Failed to initialize ovirt client %s", err)
 	}
 
+	klog.Infof("Calling config.GetConfig()\n")
+
 	// Get a config to talk to the apiserver
 	restConfig, err := config.GetConfig()
 	if err != nil {
 		klog.Fatal(err)
 	}
 
-	klog.Infof("Kubeconfig: %s", restConfig.String())
+	klog.Infof("Printing rest config\n")
+
+	klog.Infof("Kubeconfig: %s\n", restConfig.String())
 	//klog.V(2).Infof("Kubeconfig: %s", restConfig.String())
 
 	clientSet, err := kubernetes.NewForConfig(restConfig)
 	if err != nil {
+		klog.Infof("error getting rest config")
 		klog.Fatal(err)
 	}
+	klog.Info("Sleeping\n")
 
-	klog.Infof("Testing access to Kubernets API server")
+	for i := 1; i < 1000; i++ {
+		time.Sleep(60 * time.Second)
+	}
+
+	klog.Infof("Testing access to Kubernets API server\n")
 	nodeList, err := clientSet.CoreV1().Nodes().List(context.Background(), metav1.ListOptions{})
 	if err != nil {
 		klog.Fatal(err)
 	}
 	if len(nodeList.Items) == 0 {
-		klog.Fatal(fmt.Errorf("no nodes found in Kubernetes cluste"))
+		klog.Fatal(fmt.Errorf("no nodes found in Kubernetes cluster"))
 	}
-	klog.Infof("Found %n nodes in cluseter", len(nodeList.Items))
+	klog.Infof("Found %d nodes in cluster\n", len(nodeList.Items))
 
 	opts := manager.Options{
 		Namespace:          *namespace,
