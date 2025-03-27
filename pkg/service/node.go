@@ -348,20 +348,22 @@ func getDeviceInfo(device string) (string, error) {
 	cmd0 := exec.Command("udevadm", "settle")
 	cmd0.Output()
 
-	klog.Info("lsblk -nro FSTYPE ", devicePath)
-	cmd := exec.Command("lsblk", "-nro", "FSTYPE", devicePath)
+	klog.Info("blkid -s TYPE -o value ", devicePath)
+	cmd := exec.Command("blkid", "-s", "TYPE", "-o", "VALUE", devicePath)
 	out, err := cmd.Output()
 	exitError, incompleteCmd := err.(*exec.ExitError)
 	if err != nil && incompleteCmd {
-		return "", errors.New(err.Error() + "lsblk failed with " + string(exitError.Stderr))
+		return "", errors.New(err.Error() + "blkid failed with " + string(exitError.Stderr))
 	}
 
 	reader := bufio.NewReader(bytes.NewReader(out))
 	line, _, err := reader.ReadLine()
 	if err != nil {
-		klog.Errorf("Error occured while trying to read lsblk output")
+		klog.Errorf("Error occured while trying to read blkid output")
 		return "", err
 	}
+	klog.Infof("blkid returned %s", string(line))
+
 	return string(line), nil
 }
 
