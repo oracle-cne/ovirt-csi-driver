@@ -348,13 +348,27 @@ func getDeviceInfo(device string) (string, error) {
 	cmd0 := exec.Command("udevadm", "settle")
 	cmd0.Output()
 
-	klog.Infof("blkid -s TYPE -o value %s", devicePath)
-	cmd := exec.Command("blkid", "-s", "TYPE", "-o", "value", devicePath)
-	klog.Infof("Running %s", cmd.String())
+	// Check if device exists.  That is all we use lsblk for, it doesn't return type correctly
+	klog.Info("lsblk -nro FSTYPE ", devicePath)
+	cmd := exec.Command("lsblk", "-nro", "FSTYPE", devicePath)
 	out, err := cmd.Output()
 	exitError, incompleteCmd := err.(*exec.ExitError)
 	if err != nil && incompleteCmd {
-		klog.Info("blkid failed with " + string(exitError.Stderr))
+		return "", errors.New(err.Error() + "lsblk failed with " + string(exitError.Stderr))
+	}
+
+	// Device exists, now check if it formatted
+	klog.Infof("blkid -s TYPE -o value %s", devicePath)
+	cmd = exec.Command("blkid", "-s", "TYPE", "-o", "value", devicePath)
+	klog.Infof("Running %s", cmd.String())
+	out, err = cmd.Output()
+	exitError, incompleteCmd = err.(*exec.ExitError)
+	if err != nil && exitError.ExitCode() != 0 {
+		if exitError.ExitCode() != 2 {
+			// device (e.g. /dev/sdb) exists but it is not formated
+			return "", nil
+		}
+		klog.Info("blkid failed with " + string(exitError.ExitCode()))
 		return "", errors.New(err.Error() + "blkid failed with " + string(exitError.Stderr))
 	}
 
