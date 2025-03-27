@@ -37,8 +37,9 @@ install -m 755 bin/%{app_name} %{buildroot}/%{app_name}
 /%{app_name}
 
 %changelog
+* Thurs Mar 27 2025 Paul Mackin <paul.mackin@oracle.com> - 4.20.0-2
+- Initial fixes for both controller plugin and node plugin.
+
 * Wed Mar 12 2025 Michael Gianatassio <michael.gianatassio@oracle.com> - 4.20.0-1
 - Added Oracle specific build files for oVirt CSI driver.
 
-* Thurs Mar 27 2025 Paul Mackin <paul.mackin@oracle.com> - 4.20.0-2
-- Initial fixes for both controller plugin and node plugin.
