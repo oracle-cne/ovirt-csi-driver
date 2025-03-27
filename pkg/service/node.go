@@ -9,6 +9,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/container-storage-interface/spec/lib/go/csi"
 	volumemanager "github.com/ovirt/csi-driver/pkg/utils"
@@ -61,11 +62,19 @@ func (n *NodeService) NodeStageVolume(ctx context.Context, req *csi.NodeStageVol
 	}
 
 	// is there a filesystem on this device?
-	filesystem, err := getDeviceInfo(device)
+	var filesystem string
+	for i := 0; i < 5; i++ {
+		filesystem, err = getDeviceInfo(device)
+		if err == nil && filesystem != "" {
+			break
+		}
+		time.Sleep(1 * time.Second)
+	}
 	if err != nil {
 		klog.Errorf("Failed to fetch device info for volume %s on node %s", vId, n.nodeId)
 		return nil, err
 	}
+
 	if filesystem != "" {
 		klog.Infof("Detected fs %s, returning", filesystem)
 		return &csi.NodeStageVolumeResponse{}, nil
@@ -335,6 +344,12 @@ func getDeviceInfo(device string) (string, error) {
 		return "", errors.New(err.Error())
 	}
 
+	// wait for kernel to process events when new device added
+	klog.Info("running udevadm settle")
+	cmd0 := exec.Command("udevadm", "settle")
+	cmd0.Output()
+
+	// Check if device exists.  That is all we use lsblk for, it doesn't return type correctly
 	klog.Info("lsblk -nro FSTYPE ", devicePath)
 	cmd := exec.Command("lsblk", "-nro", "FSTYPE", devicePath)
 	out, err := cmd.Output()
@@ -343,12 +358,29 @@ func getDeviceInfo(device string) (string, error) {
 		return "", errors.New(err.Error() + "lsblk failed with " + string(exitError.Stderr))
 	}
 
+	// Device exists, now check if it formatted
+	klog.Infof("blkid -s TYPE -o value %s", devicePath)
+	cmd = exec.Command("blkid", "-s", "TYPE", "-o", "value", devicePath)
+	klog.Infof("Running %s", cmd.String())
+	out, err = cmd.Output()
+	exitError, incompleteCmd = err.(*exec.ExitError)
+	if err != nil && exitError.ExitCode() != 0 {
+		if exitError.ExitCode() == 2 {
+			// device (e.g. /dev/sdb) exists, but it is not formated
+			return "", nil
+		}
+		klog.Infof("blkid failed with %d", exitError.ExitCode())
+		return "", errors.New(err.Error() + "blkid failed with " + string(exitError.Stderr))
+	}
+
 	reader := bufio.NewReader(bytes.NewReader(out))
 	line, _, err := reader.ReadLine()
 	if err != nil {
-		klog.Errorf("Error occured while trying to read lsblk output")
+		klog.Errorf("Error occured while trying to read blkid output")
 		return "", err
 	}
+	klog.Infof("blkid returned %s", string(line))
+
 	return string(line), nil
 }
 
