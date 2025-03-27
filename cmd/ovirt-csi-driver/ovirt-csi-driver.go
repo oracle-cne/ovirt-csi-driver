@@ -48,6 +48,7 @@ func handle() {
 	if err != nil {
 		klog.Fatalf("Failed to initialize ovirt client %s", err)
 	}
+	klog.Infof("Success verifying connection to ovirt server")
 
 	klog.Infof("Calling config.GetConfig()\n")
 

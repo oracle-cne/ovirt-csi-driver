@@ -88,7 +88,7 @@ spec:
           env:
             - name: CSI_ENDPOINT
               value: unix:///csi/csi.sock
-            - name: KUBE_NODE_NAME
+            - name: KUBE_f_NAME
               valueFrom:
                 fieldRef:
                   apiVersion: v1

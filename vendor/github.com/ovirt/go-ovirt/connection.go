@@ -32,6 +32,8 @@ import (
 	"reflect"
 	"strings"
 	"time"
+	"k8s.io/klog"
+
 )
 
 // LogFunc represents a flexiable and injectable logger function which fits to most of logger libraries
@@ -75,8 +77,11 @@ func (c *Connection) URL() string {
 func (c *Connection) Test() error {
 	_, err := c.SystemService().Get().Send()
 	if err != nil {
+		klog.Infof("oVirt client - connection.go.Test(): Failed to get system service: %v", err)
 		return fmt.Errorf("failed to validate the connection (%w)", err)
 	}
+	klog.Infof("oVirt client - connection.go.Test(): success connecting")
+
 	return nil
 }
 

@@ -9,6 +9,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/container-storage-interface/spec/lib/go/csi"
 	volumemanager "github.com/ovirt/csi-driver/pkg/utils"
@@ -61,11 +62,19 @@ func (n *NodeService) NodeStageVolume(ctx context.Context, req *csi.NodeStageVol
 	}
 
 	// is there a filesystem on this device?
-	filesystem, err := getDeviceInfo(device)
+	var filesystem string
+	for i := 0; i < 10; i++ {
+		filesystem, err = getDeviceInfo(device)
+		if err == nil && filesystem != "" {
+			break
+		}
+		time.Sleep(1 * time.Second)
+	}
 	if err != nil {
 		klog.Errorf("Failed to fetch device info for volume %s on node %s", vId, n.nodeId)
 		return nil, err
 	}
+
 	if filesystem != "" {
 		klog.Infof("Detected fs %s, returning", filesystem)
 		return &csi.NodeStageVolumeResponse{}, nil
@@ -334,6 +343,10 @@ func getDeviceInfo(device string) (string, error) {
 		klog.Errorf("Unable to evaluate symlink for device %s", device)
 		return "", errors.New(err.Error())
 	}
+
+	klog.Info("running udevadm settle")
+	cmd0 := exec.Command("udevadm", "settle")
+	cmd0.Output()
 
 	klog.Info("lsblk -nro FSTYPE ", devicePath)
 	cmd := exec.Command("lsblk", "-nro", "FSTYPE", devicePath)
