@@ -364,8 +364,8 @@ func getDeviceInfo(device string) (string, error) {
 	out, err = cmd.Output()
 	exitError, incompleteCmd = err.(*exec.ExitError)
 	if err != nil && exitError.ExitCode() != 0 {
-		if exitError.ExitCode() != 2 {
-			// device (e.g. /dev/sdb) exists but it is not formated
+		if exitError.ExitCode() == 2 {
+			// device (e.g. /dev/sdb) exists, but it is not formated
 			return "", nil
 		}
 		klog.Infof("blkid failed with %d", exitError.ExitCode())
