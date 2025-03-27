@@ -368,7 +368,7 @@ func getDeviceInfo(device string) (string, error) {
 			// device (e.g. /dev/sdb) exists but it is not formated
 			return "", nil
 		}
-		klog.Info("blkid failed with " + string(exitError.ExitCode()))
+		klog.Infof("blkid failed with %d", exitError.ExitCode())
 		return "", errors.New(err.Error() + "blkid failed with " + string(exitError.Stderr))
 	}
 
