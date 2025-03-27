@@ -63,7 +63,7 @@ func (n *NodeService) NodeStageVolume(ctx context.Context, req *csi.NodeStageVol
 
 	// is there a filesystem on this device?
 	var filesystem string
-	for i := 0; i < 10; i++ {
+	for i := 0; i < 5; i++ {
 		filesystem, err = getDeviceInfo(device)
 		if err == nil && filesystem != "" {
 			break
@@ -348,11 +348,13 @@ func getDeviceInfo(device string) (string, error) {
 	cmd0 := exec.Command("udevadm", "settle")
 	cmd0.Output()
 
-	klog.Info("blkid -s TYPE -o value ", devicePath)
-	cmd := exec.Command("blkid", "-s", "TYPE", "-o", "VALUE", devicePath)
+	klog.Infof("blkid -s TYPE -o value %s", devicePath)
+	cmd := exec.Command("blkid", "-s", "TYPE", "-o", "value", devicePath)
+	klog.Infof("Running %s", cmd.String())
 	out, err := cmd.Output()
 	exitError, incompleteCmd := err.(*exec.ExitError)
 	if err != nil && incompleteCmd {
+		klog.Info("blkid failed with " + string(exitError.Stderr))
 		return "", errors.New(err.Error() + "blkid failed with " + string(exitError.Stderr))
 	}
 
