@@ -344,6 +344,7 @@ func getDeviceInfo(device string) (string, error) {
 		return "", errors.New(err.Error())
 	}
 
+	// wait for kernel to process events when new device added
 	klog.Info("running udevadm settle")
 	cmd0 := exec.Command("udevadm", "settle")
 	cmd0.Output()

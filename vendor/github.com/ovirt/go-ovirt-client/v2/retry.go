@@ -7,7 +7,6 @@ import (
 	"reflect"
 	"strings"
 	"time"
-	"k8s.io/klog"
 
 	ovirtclientlog "github.com/ovirt/go-ovirt-client-log/v3"
 )
@@ -38,16 +37,11 @@ func retry(
 	for {
 		err := what()
 		if err == nil {
-			klog.Infof("oVirt client - retry.go.retry(): what() success")
 			logger.Infof("Completed %s.", action)
 			return nil
 		}
-		klog.Infof("oVirt client - retry.go.retry(): what() failed %v", err)
-
 		for _, r := range retries {
-			klog.Infof("oVirt client - retry.go.retry(): in retry loop calling continue()")
 			if err := r.Continue(err, action); err != nil {
-				klog.Infof("oVirt client - retry.go.retry(): continue() failed %v", err)
 				logger.Infof("Giving up %s (%v)", action, err)
 				return err
 			}
@@ -56,17 +50,12 @@ func retry(
 		if !recoverFailure(action, retries, err, logger) {
 			logRetry(action, logger, err)
 		}
-
-		klog.Infof("oVirt client - retry.go.retry(): looping through retries, len = %d", len(retries))
-
 		// Here we create a select statement with a dynamic number of cases. We use this because a) select{} only
 		// supports fixed cases and b) the channel types are different. Context returns a <-chan struct{}, while
 		// time.After() returns <-chan time.Time. Go doesn't support type assertions, so we have to result to
 		// the reflection library to do this.
 		var chans []reflect.SelectCase
 		for _, r := range retries {
-			klog.Infof("oVirt client - retry.go.retry(): waiting on channel errors")
-
 			c := r.Wait(err)
 			if c != nil {
 				chans = append(
