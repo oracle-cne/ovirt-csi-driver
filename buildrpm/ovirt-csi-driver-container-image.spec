@@ -43,7 +43,7 @@ podman save -o %{app_name}.tar %{docker_image}
 /usr/local/share/olcne/%{app_name}.tar
 
 %changelog
-* Thurs Mar 27 2025 Paul Mackin <paul.mackin@oracle.com> - 4.20.0-2
+* Thu Mar 27 2025 Paul Mackin <paul.mackin@oracle.com> - 4.20.0-2
 - Initial fixes for both controller plugin and node plugin.
 
 * Wed Mar 12 2025 Michael Gianatassio <michael.gianatassio@oracle.com> - 4.20.0-1
