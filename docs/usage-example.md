@@ -1,15 +1,18 @@
-This document describes how to install the ovirt-csi-driver into an OLVM CAPI cluster 
-and configure it to create PVs in an OLVM storage domain.  
+This document describes how to use the ovirt-csi-driver with an OLVM CAPI cluster 
+and configure it to create PVs in an OLVM storage domain.  This allows you to
+create Pods that mount OLVM storage volumes as specified by a Kubernetes StorageClass. 
 
-# Step 1: Create OVLM CAPI cluster  
-You wil need an OLVM CAPI cluster with a configured storage domain.  See [Creating an OVLM CAPI cluster](https://github.com/oracle-cne/ocne/blob/main/doc/cluster-management/olvm.md)  
+# Step 1: Create OLVM CAPI cluster  
+First, you need an OLVM CAPI cluster with a configured storage domain.  See [Creating an OVLM CAPI cluster](https://github.com/oracle-cne/ocne/blob/main/doc/cluster-management/olvm.md)  
 When you create an OLVM Kubernetes cluster with the `ocne cluster start --provider olvm`, 
-then the `ocne` client automatically creates the secret, configmap, then installs the ovirt-csi-driver.
+the `ocne` client automatically installs the ovirt-csi-driver, creating the required
+secret, configmap, and CsiDriver.  There are no extra steps required at this point.
 
 # Step 2: Create a StorageClass 
-Before using the ovirt-csi-driver, you need to create a StorageClass, specifying the following:
-
-* provisioner - this must be set to csi.ovirt.og  
+Before using the ovirt-csi-driver, you need to create a StorageClass that uses the CsiDriver installed previously.  
+  
+You need to specify the following:
+* provisioner - this must be set to csi.ovirt.org, which is the CsiDriver name.
 * storageDomainName - this is the name of your OLVM storage domain where PV volumes will be created.  This domain must exist.  
 * thinProvisioning - set true or false  
 * fsType - set file system type.  The driver will format the volume if there is no file system.  
@@ -38,7 +41,10 @@ kubectl apply -f ./storage-class.yaml
 ```
 
 # Step 3 - Create a PVC
-Create a PVC YAML file that uses the storage class.  For example
+Next create a PVC YAML file that uses the storage class.  Once you apply this file, Kubernetes will use
+the ovirt-csi-driver to create the PV.  
+
+Here is an example:  
 ```
 cat <<'EOF' > ./pvc.yaml 
 kind: PersistentVolumeClaim
@@ -65,7 +71,8 @@ kubectl get pv
 ```
 
 # Step 4 - Create a Pod to use the PVC
-The following example shows a sample pod that mounts the PVC.
+The following example shows a sample pod that mounts the volume by using a PVC.  
+
 ```
 cat <<'EOF' > ./pod.yaml 
 apiVersion: v1 
@@ -97,6 +104,15 @@ Once the pod is running you can see the attached volume
 ```
 kubectl exec -it test bash -- sh -c 'ls /demo'
 ```
+# Step 5 - Cleanup
+You can now delete the Pod, PVC, and PV that you created.  You can leave the StorageClass for further usage or delete it.  
+Do not delete the CsiDriver.
+```
+kubectl delete -f ./pod.yaml
+kubectl delete -f ./pvc.yaml
+```
+Once the PVC is deleted, then the PV will automatically get deleted and the disk 
+in your OLVM storage domain will likewise get deleted.
 
 # Summary
 This document shows how to use the ovirt-csi-driver that was automatically installed OLVM CAPI cluster was created.
@@ -135,10 +151,11 @@ Apply the secret
 kubectl --kubeconfig $KUBEOLVM apply -f ./ovirt-csi-secret.yaml 
 ```
 
-## Step 2: Create the configmap used by the ovirt-csi-driver
-This is only needed if your CA cert is not a well-known cert in the trust store.
-Get the existing ca.crt configmap used by the OLVM CAPI controller.
-By default, the configmap is in namespace `olvm-cluster`, configmap name `<cluster-name>-ovirt-ca`.
+## Step 2: Create the ConfigMap used by the ovirt-csi-driver
+This is not needed if your CA certificate is signed by a trusted CA and in the local trust store.  
+
+To create the ConfigMap CA, get the existing ca.crt ConfigMap used by the OLVM CAPI controller.
+By default, the ConfigMap is in namespace `olvm-cluster`, ConfigMap name `<cluster-name>-ovirt-ca`.
 Dump the contents of the configmap in a file, change the namespace/name and kubectl apply the file.  
 
 For example:
