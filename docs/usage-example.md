@@ -41,7 +41,7 @@ kubectl apply -f ./storage-class.yaml
 ```
 
 # Step 3 - Create a PVC
-Next create a PVC YAML file that uses the storage class.  Once you apply this file, Kubernetes will use
+Next create a PVC YAML file that uses the StorageClass.  Once you apply this file, Kubernetes will use
 the ovirt-csi-driver to create the PV.  
 
 Here is an example:  
@@ -111,11 +111,9 @@ Do not delete the CsiDriver.
 kubectl delete -f ./pod.yaml
 kubectl delete -f ./pvc.yaml
 ```
-Once the PVC is deleted, then the PV will automatically get deleted and the disk 
+Once the PVC is deleted, then the PV will automatically get deleted, and the disk 
 in your OLVM storage domain will likewise get deleted.
 
-# Summary
-This document shows how to use the ovirt-csi-driver that was automatically installed OLVM CAPI cluster was created.
 
 # Addendum - Installing the ovirt-csi-driver from the catalog
 **NOTE** This is only needed if you wish to install the ovirt-csi-driver manually.
@@ -196,10 +194,17 @@ kubectl --kubeconfig $KUBEOLVM apply -f ./ovirt-csi-configmap.yaml
 ````
 
 ## Step 3: Install the ovirt-csi-driver from the catalog
-Using the `ocne` CLI, install the `ovirt-csi-driver` into the OLVM CAPI cluster using the following command:
+Using the `ocne` CLI, install the `ovirt-csi-driver` into the OLVM CAPI cluster.  This will also install the CsiDriver.  
+
+Run the following command:
 ```text
 export $KUBEOVLM <olvm kubeconfig file>
 ocne application install --catalog embedded --name ovirt-csi-driver --kubeconfig $KUBEOVLM
 ```
 
 You can provide an override file to change any of the values defined in the values.yaml file of the catalog application.
+
+# Summary
+This document shows how to use the ovirt-csi-driver that was automatically installed OLVM CAPI cluster was created.
+In addition, the document also describes the steps required for manually installing the ovirt-csi-driver from 
+the catalog.
