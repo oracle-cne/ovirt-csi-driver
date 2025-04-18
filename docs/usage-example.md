@@ -130,7 +130,7 @@ OVIRT_PASSWORD=echo -n <password> | base64
 OVIRT_USERNAME=echo -n <username> | base64
 ```
 
-Now run the following command to generate the secret YAML file.
+Run the following command to generate the Secret YAML file:
 ```text
 envsubst > ./ovirt-csi-secret.yaml 
 apiVersion: v1
@@ -144,7 +144,7 @@ metadata:
   namespace: ovirt-csi
 type: Opaque
 ```
-Apply the secret
+Apply the Secret:
 ```
 kubectl --kubeconfig $KUBEOLVM apply -f ./ovirt-csi-secret.yaml 
 ```
@@ -172,8 +172,8 @@ metadata:
   namespace: olvm-cluster
 ```
   
-The new configmap that you need to create has the same contents by different namespace/name.
-Let's call this file `./ovirt-csi-configmap.yaml`.
+The new ConfigMap that you need to create has the same contents by different namespace/name.
+Name this file `./ovirt-csi-configmap.yaml`:
 ```text
 apiVersion: v1
 data:
@@ -188,10 +188,10 @@ metadata:
   namespace: ovirt-csi
 ```
   
-Apply the configmap
+Apply the ConfigMap:
 ```
 kubectl --kubeconfig $KUBEOLVM apply -f ./ovirt-csi-configmap.yaml
-````
+```
 
 ## Step 3: Install the ovirt-csi-driver from the catalog
 Using the `ocne` CLI, install the `ovirt-csi-driver` into the OLVM CAPI cluster.  This will also install the CsiDriver.  
