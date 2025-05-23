@@ -7,6 +7,7 @@ RUN microdnf update && \
     microdnf clean all && \
     rpm -i /tmp/*.rpm && \
     rm /tmp/*.rpm &&  \
-    rm -rf /bin/* /sbin/* /usr/bin/* /usr/sbin/*
+    rm /bin/sh /usr/bin/sh /bin/bash /usr/bin/bash &&  \
+    rm /bin/cat /usr/bin/cat /bin/more /usr/bin/more
 
 ENTRYPOINT ["/ovirt-csi-driver"]
