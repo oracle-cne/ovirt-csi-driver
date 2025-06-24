@@ -6,7 +6,7 @@
 
 %global app_name                ovirt-csi-driver
 %global app_version             4.20.0
-%global oracle_release_version  2
+%global oracle_release_version  3
 %global _buildhost              build-ol%{?oraclelinux}-%{?_arch}.oracle.com
 
 Name:           %{app_name}
@@ -37,6 +37,9 @@ install -m 755 bin/%{app_name} %{buildroot}/%{app_name}
 /%{app_name}
 
 %changelog
+* Tue Jun 24 2025 Paul Mackin <paul.mackin@oracle.com> - 4.20.0-3
+- Delete config file containing password.
+
 * Thu Mar 27 2025 Paul Mackin <paul.mackin@oracle.com> - 4.20.0-2
 - Initial fixes for both controller plugin and node plugin.
 

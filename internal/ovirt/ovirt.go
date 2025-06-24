@@ -31,7 +31,7 @@ func NewClient() (ovirtclient.Client, error) {
 		tls.CACertsFromFile(ovirtConfig.CAFile)
 	}
 	logger := kloglogger.New()
-	//TODO: HANDLE VERBUSE
+	//TODO: HANDLE VERBOSE
 	client, err := ovirtclient.New(
 		ovirtConfig.URL,
 		ovirtConfig.Username,
@@ -40,6 +40,14 @@ func NewClient() (ovirtclient.Client, error) {
 		logger,
 		nil,
 	)
+	// remove config file regardless of the previous status
+	configPath := DiscoverConfigFilePath()
+	removeErr := os.Remove(configPath)
+	if removeErr != nil {
+		return nil, removeErr
+	}
+
+	// Check for any previous error
 	if err != nil {
 		return nil, err
 	}
@@ -50,7 +58,7 @@ func NewClient() (ovirtclient.Client, error) {
 // 1. OVIRT_CONFIG env variable
 // 2  $defaultOvirtConfigPath
 func LoadOvirtConfig() ([]byte, error) {
-	data, err := ioutil.ReadFile(discoverPath())
+	data, err := ioutil.ReadFile(DiscoverConfigFilePath())
 	if err != nil {
 		return nil, err
 	}
@@ -75,7 +83,7 @@ func GetOvirtConfig() (*Config, error) {
 	return &c, nil
 }
 
-func discoverPath() string {
+func DiscoverConfigFilePath() string {
 	path, _ := os.LookupEnv(defaultOvirtConfigEnvVar)
 	if path != "" {
 		return path
@@ -92,6 +100,6 @@ func (c *Config) Save() error {
 		return err
 	}
 
-	path := discoverPath()
+	path := DiscoverConfigFilePath()
 	return ioutil.WriteFile(path, out, os.FileMode(0600))
 }
