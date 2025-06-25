@@ -52,17 +52,7 @@ func NewClient() (ovirtclient.Client, error) {
 		logger,
 		nil,
 	)
-	// remove config file regardless of the previous status
-	configPath := DiscoverConfigFilePath()
-	removeErr := os.Remove(configPath)
-	if removeErr != nil {
-		return nil, removeErr
-	}
-
-	// Check for any previous error
-	if err != nil {
-		return nil, err
-	}
+	
 	return client, nil
 }
 
