@@ -52,7 +52,7 @@ func NewClient() (ovirtclient.Client, error) {
 		logger,
 		nil,
 	)
-	
+
 	return client, nil
 }
 
