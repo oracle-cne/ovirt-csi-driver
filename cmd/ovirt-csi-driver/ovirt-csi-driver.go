@@ -4,13 +4,11 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"github.com/ovirt/csi-driver/pkg/ovirt/disk"
 	"math/rand"
 	"os"
 	"time"
 
 	"github.com/ovirt/csi-driver/internal/ovirt"
-	ovconfig "github.com/ovirt/csi-driver/pkg/config"
 	"github.com/ovirt/csi-driver/pkg/service"
 	ovirtclient "github.com/ovirt/go-ovirt-client/v2"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -43,12 +41,12 @@ func main() {
 func handle() {
 
 	// TESTING - Remove this
-	dp := "data-512"
-	c, err := ovconfig.GetOvirtConfig()
-	if err != nil {
-		klog.Fatal(err)
-	}
-	disk.SelectStorageDomainFromDiskProfile(c, dp)
+	//dp := "data-512"
+	//c, err := ovconfig.GetOvirtConfig()
+	//if err != nil {
+	//	klog.Fatal(err)
+	//}
+	//disk.SelectStorageDomainFromDiskProfile(c, dp)
 
 	//  end TESTING - Remove this
 

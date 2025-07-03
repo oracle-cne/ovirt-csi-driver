@@ -62,7 +62,8 @@ func GetOVClient(config *config.Config) (*Client, error) {
 		if err != nil {
 			return nil, fmt.Errorf("failed to read CA file: %s", err.Error())
 		}
-		creds.CA = map[string]string{"ca.crt": string(caData)}
+		caString := strings.TrimSpace(string(caData))
+		creds.CA = map[string]string{"ca.crt": caString}
 	}
 
 	// Get an oVirt client
