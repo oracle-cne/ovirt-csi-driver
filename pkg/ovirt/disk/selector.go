@@ -1,6 +1,7 @@
 package disk
 
 import (
+	"fmt"
 	"github.com/ovirt/csi-driver/pkg/config"
 	"github.com/ovirt/csi-driver/pkg/ovirt/ovclient"
 	"github.com/ovirt/csi-driver/pkg/ovirt/rest/disk_profile"
@@ -8,37 +9,37 @@ import (
 	log "k8s.io/klog"
 )
 
-func SelectStorageDomainFromDiskProfile(config *config.Config, diskProfile string) (string, error) {
-	domains, err := getStorageDomainsFromDiskProfile(config, diskProfile)
+func SelectStorageDomainFromDiskProfile(config *config.Config, profileName string) (string, error) {
+	domains, err := getStorageDomainsFromDiskProfile(config, profileName)
 	if err != nil {
 		return "", err
 	}
 
 	if domains == nil {
-		return "", nil
+		return "", fmt.Errorf("no storage domains found for disk profile %s", profileName)
 	}
 
 	// For now use the first one.
-	log.Infof("Found %d storage domain(s)", len(domains))
+	log.Infof("found %d storage domain(s) for disk profile %s", len(domains), profileName)
 	return domains[0].Name, nil
 }
 
 func getStorageDomainsFromDiskProfile(config *config.Config, diskProfileName string) ([]*storagedomain.StorageDomain, error) {
 	ovcli, err := ovclient.GetOVClient(config)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error getting ovirt client: %s", err.Error())
 	}
 
 	// get the disk profiles by name
 	diskProfiles, err := disk_profile.GetDiskProfilesByName(ovcli, diskProfileName)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error getting disk profiles by disk profile name %s: %s", diskProfileName, err.Error())
 	}
 
 	// get all storage domains
 	storageDomainList, err := storagedomain.GetStorageDomains(ovcli)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error getting storage domain list: %s", err.Error())
 	}
 
 	// create a map of storage domains by id

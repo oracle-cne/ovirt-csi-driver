@@ -38,9 +38,11 @@ func (c *ControllerService) CreateVolume(ctx context.Context, req *csi.CreateVol
 	klog.Infof("Creating disk %s", req.Name)
 
 	storageDomainName, err := getStorageDomainName(req)
-	if len(storageDomainName) == 0 {
-		return nil, fmt.Errorf("error required storageClass paramater %s wasn't set",
-			ParameterStorageDomainName)
+	if err != nil {
+		return nil, err
+	}
+	if storageDomainName == "" {
+		return nil, fmt.Errorf("error: unable to determine storage domain name")
 	}
 	diskName := req.Name
 	if len(diskName) == 0 {
@@ -388,6 +390,7 @@ func getStorageDomainName(req *csi.CreateVolumeRequest) (string, error) {
 	}
 
 	if len(storageDomainName) > 0 {
+		klog.Infof("using storageDomainName %s", storageDomainName)
 		return storageDomainName, nil
 	}
 
@@ -395,10 +398,12 @@ func getStorageDomainName(req *csi.CreateVolumeRequest) (string, error) {
 		return "", fmt.Errorf("error: you must specify either storageDomainName or diskProfileName")
 	}
 
+	klog.Infof("finding a storageDomain for disk profile %s", diskProfileName)
+
 	ovconfig, err := config.GetOvirtConfig()
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("error getting ovirt config: %v", err)
 	}
 	sdName, err := disk.SelectStorageDomainFromDiskProfile(ovconfig, diskProfileName)
-	return sdName, nil
+	return sdName, err
 }
