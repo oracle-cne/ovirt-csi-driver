@@ -48,5 +48,5 @@ func GetDiskProfilesByName(ovcli *ovclient.Client, profileName string) ([]*DiskP
 		}
 	}
 
-	return matchList, fmt.Errorf("Disk profile %s not found", profileName)
+	return matchList, nil
 }

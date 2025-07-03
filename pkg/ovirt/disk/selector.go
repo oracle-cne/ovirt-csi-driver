@@ -5,6 +5,7 @@ import (
 	"github.com/ovirt/csi-driver/pkg/ovirt/ovclient"
 	"github.com/ovirt/csi-driver/pkg/ovirt/rest/disk_profile"
 	"github.com/ovirt/csi-driver/pkg/ovirt/rest/storagedomain"
+	log "k8s.io/klog"
 )
 
 func SelectStorageDomainsFromDiskProfile(config *config.Config, diskProfile string) (string, error) {
@@ -13,17 +14,21 @@ func SelectStorageDomainsFromDiskProfile(config *config.Config, diskProfile stri
 		return "", err
 	}
 
-	return domains[0], nil
+	if domains == nil {
+		return "", nil
+	}
+	log.Infof("Found %d storage domain(s)", len(domains))
+	return "", nil
 }
 
-func getStorageDomainsFromDiskProfile(config *config.Config, diskProfileName string) ([]string, error) {
+func getStorageDomainsFromDiskProfile(config *config.Config, diskProfileName string) ([]*storagedomain.StorageDomain, error) {
 	ovcli, err := ovclient.GetOVClient(config)
 	if err != nil {
 		return nil, err
 	}
 
 	// get the disk profiles by name
-	diskProfile, err := disk_profile.GetDiskProfilesByName(ovcli, diskProfileName)
+	diskProfiles, err := disk_profile.GetDiskProfilesByName(ovcli, diskProfileName)
 	if err != nil {
 		return nil, err
 	}
@@ -40,6 +45,16 @@ func getStorageDomainsFromDiskProfile(config *config.Config, diskProfileName str
 		sdMap[sd.Id] = &storageDomainList.StorageDomains[i]
 	}
 
+	// build a list of storage domains where the domain is being used by a profile
+	sdList := []*storagedomain.StorageDomain{}
+	for _, dp := range diskProfiles {
+		sd, ok := sdMap[dp.StorageDomain.Id]
+		if !ok {
+			continue
+		}
+		sdList = append(sdList, sd)
+	}
+
 	// build the list of storage domains
-	return nil, nil
+	return sdList, nil
 }

@@ -12,7 +12,7 @@ const (
 )
 
 type DiskProfileList struct {
-	DiskProfiles []DiskProfile `json:"disk_profiles"`
+	DiskProfiles []DiskProfile `json:"disk_profile"`
 }
 
 type DiskProfile struct {
