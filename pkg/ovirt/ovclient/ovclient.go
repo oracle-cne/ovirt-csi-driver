@@ -5,16 +5,15 @@ package ovclient
 
 import (
 	"fmt"
+	"github.com/ovirt/csi-driver/pkg/config"
+	"io/ioutil"
+	log "k8s.io/klog"
 	"net/http"
 	"net/url"
-	"os"
 	"strings"
 
-	"github.com/ovirt/csi-driver/pkg/cluster/driver/olvm"
 	ovhttp "github.com/ovirt/csi-driver/pkg/ovirt/rest/http"
-	log "github.com/sirupsen/logrus"
 	"k8s.io/apimachinery/pkg/util/json"
-	"k8s.io/client-go/kubernetes"
 )
 
 type Credentials struct {
@@ -51,17 +50,21 @@ type Client struct {
 }
 
 // GetOVClient gets an ovClient
-func GetOVClient(cli kubernetes.Interface, caMap map[string]string, apiServerURL string, insecureSkipTLSVerify bool) (*Client, error) {
+func GetOVClient(config *config.Config) (*Client, error) {
 	// validate the secret that has the oVirt REST creds
-	creds, err := getCredentials(cli)
+	creds, err := getCredentials(config)
 	if err != nil {
 		return nil, err
 	}
 
-	creds.CA = caMap
+	caData, err := ioutil.ReadFile(config.CAFile)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read CA file: %s", err.Error())
+	}
+	creds.CA = map[string]string{"ca.crt": string(caData)}
 
 	// Get an oVirt client
-	ovcli, err := ensureOvClient(creds, apiServerURL, insecureSkipTLSVerify)
+	ovcli, err := ensureOvClient(creds, config.URL, config.Insecure)
 	if err != nil {
 		return nil, err
 	}
@@ -115,7 +118,7 @@ func (o *Client) ensureAccessToken() error {
 	d := url.Values{}
 	d.Set("username", o.Credentials.Username)
 	d.Set("password", o.Credentials.Password)
-	d.Set("scope", o.Credentials.Scope)
+	//	d.Set("scope", o.Credentials.Scope)
 	d.Set("grant_type", "password")
 
 	// call the server to get the access token
@@ -126,12 +129,10 @@ func (o *Client) ensureAccessToken() error {
 	body, _, err := o.REST.Post(tokenPath, strings.NewReader(d.Encode()), h)
 	if err != nil {
 		err = fmt.Errorf("Error doing HTTP POST to oVirt server: %v", err)
-		log.Error(err)
 		return err
 	}
 	if len(body) == 0 {
 		err = fmt.Errorf("Error doing HTTP POST to create access token.  No body returned by server: %v", err)
-		log.Error(err)
 		return err
 	}
 
@@ -139,14 +140,12 @@ func (o *Client) ensureAccessToken() error {
 	ad := &AuthData{}
 	if err = json.Unmarshal(body, ad); err != nil {
 		err = fmt.Errorf("Error UnMarshalling JSON for credentials: %v", err)
-		log.Error(err)
 		return err
 	}
 
 	o.AccessToken = ad.AccessToken
 	if o.AccessToken == "" {
 		err = fmt.Errorf("Access token missing from body returned by POST")
-		log.Error(err)
 		return err
 	}
 
@@ -158,21 +157,16 @@ func (o *Client) ClearAccessToken() {
 	o.AccessToken = ""
 }
 
-func getCredentials(cli kubernetes.Interface) (*Credentials, error) {
+func getCredentials(config *config.Config) (*Credentials, error) {
 	c := Credentials{}
 
-	c.Username = os.Getenv(olvm.EnvUsername)
+	c.Username = config.Username
 	if c.Username == "" {
-		return nil, fmt.Errorf("Missing environment variable %s used to specify OLVM username", olvm.EnvUsername)
+		return nil, fmt.Errorf("Config is missing OLVM username")
 	}
-	c.Password = os.Getenv(olvm.EnvPassword)
+	c.Password = config.Password
 	if c.Password == "" {
-		return nil, fmt.Errorf("Missing environment variable %s used to specify OLVM password", olvm.EnvPassword)
+		return nil, fmt.Errorf("Config is missing OLVM password")
 	}
-	c.Scope = os.Getenv(olvm.EnvScope)
-	if c.Scope == "" {
-		return nil, fmt.Errorf("Missing environment variable %s used to specify OLVM scope", olvm.EnvScope)
-	}
-
 	return &c, nil
 }

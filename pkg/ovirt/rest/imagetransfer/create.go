@@ -7,8 +7,8 @@ import (
 	"bytes"
 	"fmt"
 	"github.com/ovirt/csi-driver/pkg/ovirt/ovclient"
-	log "github.com/sirupsen/logrus"
 	"k8s.io/apimachinery/pkg/util/json"
+	log "k8s.io/klog"
 
 	"net/http"
 )
