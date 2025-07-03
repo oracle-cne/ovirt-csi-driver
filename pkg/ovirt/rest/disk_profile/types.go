@@ -1,7 +1,7 @@
 // Copyright (c) 2024, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package disk
+package disk_profile
 
 const (
 	StatusOK = "ok"
@@ -11,24 +11,11 @@ const (
 	BackupNone = "none"
 )
 
-type CreateDiskRequest struct {
-	StorageDomainList StorageDomainList `json:"storage_domains"`
-	Name              string            `json:"name"`
-	ProvisionedSize   string            `json:"provisioned_size"`
-	Format            string            `json:"format"`
-	Backup            string            `json:"backup"`
-	InitialSize       string            `json:"initial_size"`
+type DiskProfileList struct {
+	DiskProfiles []DiskProfile `json:"disk_profiles"`
 }
 
-type StorageDomainList struct {
-	StorageDomains []StorageDomain `json:"storage_domain"`
-}
-
-type StorageDomain struct {
-	Id string `json:"id"`
-}
-
-type Disk struct {
+type DiskProfile struct {
 	ActualSize      string `json:"actual_size"`
 	Alias           string `json:"alias"`
 	Backup          string `json:"backup"`
