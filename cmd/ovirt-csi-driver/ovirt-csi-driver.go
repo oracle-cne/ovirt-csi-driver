@@ -48,7 +48,7 @@ func handle() {
 	if err != nil {
 		klog.Fatal(err)
 	}
-	disk.SelectStorageDomainsFromDiskProfile(c, dp)
+	disk.SelectStorageDomainFromDiskProfile(c, dp)
 
 	//  end TESTING - Remove this
 

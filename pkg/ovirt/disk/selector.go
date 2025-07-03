@@ -8,7 +8,7 @@ import (
 	log "k8s.io/klog"
 )
 
-func SelectStorageDomainsFromDiskProfile(config *config.Config, diskProfile string) (string, error) {
+func SelectStorageDomainFromDiskProfile(config *config.Config, diskProfile string) (string, error) {
 	domains, err := getStorageDomainsFromDiskProfile(config, diskProfile)
 	if err != nil {
 		return "", err
@@ -17,8 +17,10 @@ func SelectStorageDomainsFromDiskProfile(config *config.Config, diskProfile stri
 	if domains == nil {
 		return "", nil
 	}
+
+	// For now use the first one.
 	log.Infof("Found %d storage domain(s)", len(domains))
-	return "", nil
+	return domains[0].Name, nil
 }
 
 func getStorageDomainsFromDiskProfile(config *config.Config, diskProfileName string) ([]*storagedomain.StorageDomain, error) {

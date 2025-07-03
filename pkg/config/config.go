@@ -12,6 +12,9 @@ import (
 
 const defaultOvirtConfigEnvVar = "OVIRT_CONFIG"
 
+// singleton config
+var ovconfig *Config
+
 // Config holds oVirt api access details.
 type Config struct {
 	URL      string `yaml:"ovirt_url"`
@@ -25,6 +28,10 @@ type Config struct {
 // GetOvirtConfig will return a Config by loading
 // it from disk and ensuring that the password on disk is base64 encoded.
 func GetOvirtConfig() (*Config, error) {
+	if ovconfig != nil {
+		return ovconfig, nil
+	}
+
 	ovirtConfig, err := getOvirtConfigFromDisk()
 	if err != nil {
 		return nil, fmt.Errorf("Error getting ovirt config: %v", err)
@@ -35,6 +42,7 @@ func GetOvirtConfig() (*Config, error) {
 		return nil, err
 	}
 
+	ovconfig = ovirtConfig
 	return ovirtConfig, nil
 }
 

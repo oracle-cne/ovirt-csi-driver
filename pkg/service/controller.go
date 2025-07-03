@@ -2,6 +2,8 @@ package service
 
 import (
 	"fmt"
+	"github.com/ovirt/csi-driver/pkg/config"
+	"github.com/ovirt/csi-driver/pkg/ovirt/disk"
 	"strconv"
 
 	"github.com/container-storage-interface/spec/lib/go/csi"
@@ -13,9 +15,11 @@ import (
 )
 
 const (
-	ParameterStorageDomainName = "storageDomainName"
-	ParameterThinProvisioning  = "thinProvisioning"
-	minimumDiskSize            = 1 * 1024 * 1024
+	ParameterDiskProfileName              = "diskProfileName"
+	ParameterStorageDomainSelectionPolicy = "storageDomainSelectionPolicy"
+	ParameterStorageDomainName            = "storageDomainName"
+	ParameterThinProvisioning             = "thinProvisioning"
+	minimumDiskSize                       = 1 * 1024 * 1024
 )
 
 // ControllerService implements the controller interface
@@ -32,7 +36,8 @@ var ControllerCaps = []csi.ControllerServiceCapability_RPC_Type{
 // CreateVolume creates the disk for the request, unattached from any VM
 func (c *ControllerService) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest) (*csi.CreateVolumeResponse, error) {
 	klog.Infof("Creating disk %s", req.Name)
-	storageDomainName := req.Parameters[ParameterStorageDomainName]
+
+	storageDomainName, err := getStorageDomainName(req)
 	if len(storageDomainName) == 0 {
 		return nil, fmt.Errorf("error required storageClass paramater %s wasn't set",
 			ParameterStorageDomainName)
@@ -373,4 +378,27 @@ func (c *ControllerService) ControllerGetCapabilities(context.Context, *csi.Cont
 		)
 	}
 	return &csi.ControllerGetCapabilitiesResponse{Capabilities: caps}, nil
+}
+
+func getStorageDomainName(req *csi.CreateVolumeRequest) (string, error) {
+	diskProfileName := req.Parameters[ParameterDiskProfileName]
+	storageDomainName := req.Parameters[ParameterStorageDomainName]
+	if len(storageDomainName) > 0 && len(diskProfileName) > 0 {
+		return "", fmt.Errorf("error: you cannot specify both storageDomainName and diskProfileName")
+	}
+
+	if len(storageDomainName) > 0 {
+		return storageDomainName, nil
+	}
+
+	if len(diskProfileName) == 0 {
+		return "", fmt.Errorf("error: you must specify either storageDomainName or diskProfileName")
+	}
+
+	ovconfig, err := config.GetOvirtConfig()
+	if err != nil {
+		return "", err
+	}
+	sdName, err := disk.SelectStorageDomainFromDiskProfile(ovconfig, diskProfileName)
+	return sdName, nil
 }
