@@ -57,11 +57,13 @@ func GetOVClient(config *config.Config) (*Client, error) {
 		return nil, err
 	}
 
-	caData, err := ioutil.ReadFile(config.CAFile)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read CA file: %s", err.Error())
+	if !config.Insecure {
+		caData, err := ioutil.ReadFile(config.CAFile)
+		if err != nil {
+			return nil, fmt.Errorf("failed to read CA file: %s", err.Error())
+		}
+		creds.CA = map[string]string{"ca.crt": string(caData)}
 	}
-	creds.CA = map[string]string{"ca.crt": string(caData)}
 
 	// Get an oVirt client
 	ovcli, err := ensureOvClient(creds, config.URL, config.Insecure)
@@ -118,7 +120,7 @@ func (o *Client) ensureAccessToken() error {
 	d := url.Values{}
 	d.Set("username", o.Credentials.Username)
 	d.Set("password", o.Credentials.Password)
-	//	d.Set("scope", o.Credentials.Scope)
+	d.Set("scope", "ovirt-app-api")
 	d.Set("grant_type", "password")
 
 	// call the server to get the access token

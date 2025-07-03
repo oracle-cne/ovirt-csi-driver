@@ -22,17 +22,6 @@ type Config struct {
 	Insecure bool   `yaml:"ovirt_insecure,omitempty"`
 }
 
-// loadOvirtConfig from the following location (first wins):
-// 1. OVIRT_CONFIG env variable
-// 2  $defaultOvirtConfigPath
-func loadOvirtConfig() ([]byte, error) {
-	data, err := ioutil.ReadFile(discoverConfigFilePath())
-	if err != nil {
-		return nil, err
-	}
-	return data, nil
-}
-
 // GetOvirtConfig will return a Config by loading
 // it from disk and ensuring that the password on disk is base64 encoded.
 func GetOvirtConfig() (*Config, error) {
@@ -65,6 +54,17 @@ func getOvirtConfigFromDisk() (*Config, error) {
 	}
 
 	return &c, nil
+}
+
+// loadOvirtConfig from the following location (first wins):
+// 1. OVIRT_CONFIG env variable
+// 2  $defaultOvirtConfigPath
+func loadOvirtConfig() ([]byte, error) {
+	data, err := ioutil.ReadFile(discoverConfigFilePath())
+	if err != nil {
+		return nil, err
+	}
+	return data, nil
 }
 
 func discoverConfigFilePath() string {

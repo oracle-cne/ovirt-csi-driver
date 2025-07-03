@@ -11,8 +11,8 @@ import (
 )
 
 // GetDiskProfiles gets all disk profiles.
-func GetDiskProfiles(ovcli *ovclient.Client) (*StorageDomainList, error) {
-	const path = "/api/disk_profiles"
+func GetDiskProfiles(ovcli *ovclient.Client) (*DiskProfileList, error) {
+	const path = "/api/diskprofiles"
 
 	// call the server
 	body, err := ovcli.REST.Get(ovcli.AccessToken, path)
@@ -21,7 +21,7 @@ func GetDiskProfiles(ovcli *ovclient.Client) (*StorageDomainList, error) {
 		return nil, err
 	}
 
-	diskProfileList := &StorageDomainList{}
+	diskProfileList := &DiskProfileList{}
 	err = json.Unmarshal(body, diskProfileList)
 	if err != nil {
 		err = fmt.Errorf("Error unmarshaling StorageDomains: %v", err)

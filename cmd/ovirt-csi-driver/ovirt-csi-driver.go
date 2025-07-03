@@ -4,11 +4,13 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"github.com/ovirt/csi-driver/pkg/ovirt/disk"
 	"math/rand"
 	"os"
 	"time"
 
 	"github.com/ovirt/csi-driver/internal/ovirt"
+	ovconfig "github.com/ovirt/csi-driver/pkg/config"
 	"github.com/ovirt/csi-driver/pkg/service"
 	ovirtclient "github.com/ovirt/go-ovirt-client/v2"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -39,6 +41,17 @@ func main() {
 }
 
 func handle() {
+
+	// TESTING - Remove this
+	dp := "data-512"
+	c, err := ovconfig.GetOvirtConfig()
+	if err != nil {
+		klog.Fatal(err)
+	}
+	disk.SelectStorageDomainsFromDiskProfile(c, dp)
+
+	//  end TESTING - Remove this
+
 	if service.VendorVersion == "" {
 		klog.Fatalf("VendorVersion must be set at compile time")
 	}
