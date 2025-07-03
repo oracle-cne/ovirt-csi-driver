@@ -8,6 +8,7 @@ import (
 	"github.com/ovirt/csi-driver/pkg/ovirt/ovclient"
 	"k8s.io/apimachinery/pkg/util/json"
 	log "k8s.io/klog"
+	"strings"
 )
 
 // GetDiskProfiles gets all disk profiles.
@@ -30,4 +31,22 @@ func GetDiskProfiles(ovcli *ovclient.Client) (*DiskProfileList, error) {
 	}
 
 	return diskProfileList, nil
+}
+
+// GetDiskGetDiskProfilesByName gets a list disk profile by name
+func GetDiskProfilesByName(ovcli *ovclient.Client, profileName string) ([]*DiskProfile, error) {
+	matchList := []*DiskProfile{}
+
+	profileList, err := GetDiskProfiles(ovcli)
+	if err != nil {
+		return nil, err
+	}
+
+	for i, sd := range profileList.DiskProfiles {
+		if strings.EqualFold(sd.Name, profileName) {
+			matchList = append(matchList, &profileList.DiskProfiles[i])
+		}
+	}
+
+	return matchList, fmt.Errorf("Disk profile %s not found", profileName)
 }
