@@ -77,9 +77,12 @@ func GetOVClient(config *config.Config) (*Client, error) {
 
 // ensureOvClient ensures that we have an access token that can be used with the oVirt REST API.
 func ensureOvClient(creds *Credentials, apiServerURL string, insecureSkipTLSVerify bool) (*Client, error) {
+	// strip the /api if it exists since this code will append it
+	url := strings.TrimRight(apiServerURL, "/api")
+
 	// Create a new client and validate that it works
 	ovcli := &Client{
-		ApiServerURL:          apiServerURL,
+		ApiServerURL:          url,
 		Credentials:           creds,
 		InsecureSkipTLSVerify: insecureSkipTLSVerify,
 	}
