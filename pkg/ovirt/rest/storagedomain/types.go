@@ -3,6 +3,13 @@
 
 package storagedomain
 
+const (
+	ExternalStatusOK   = "ok"
+	ExternalStatusInfo = "info"
+
+	StatusActive = "active"
+)
+
 type StorageDomain struct {
 	Available                  string `json:"available,omitempty"`
 	Backup                     string `json:"backup"`

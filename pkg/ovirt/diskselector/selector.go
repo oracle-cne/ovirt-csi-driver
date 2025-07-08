@@ -1,4 +1,4 @@
-package disk
+package diskselector
 
 import (
 	"fmt"
@@ -9,19 +9,32 @@ import (
 	log "k8s.io/klog"
 )
 
-func SelectStorageDomainFromDiskProfile(config *config.Config, profileName string) (string, error) {
+func SelectStorageDomainFromDiskProfile(config *config.Config, profileName string, policy string) (string, error) {
 	domains, err := getStorageDomainsFromDiskProfile(config, profileName)
 	if err != nil {
 		return "", err
 	}
-
 	if domains == nil {
 		return "", fmt.Errorf("no storage domains found for disk profile %s", profileName)
 	}
 
+	// filter out the domains that cannot be used
+	domains, err = filterDomains(domains)
+	if domains == nil {
+		return "", fmt.Errorf("no storage domains found with the acceptable status or external status")
+	}
+
+	domain, err := selectDomainUsingPolicy(domains, policy)
+	if err != nil {
+		return "", fmt.Errorf("error selecting domain using policy %s: %v", policy, err)
+	}
+	if domain == nil {
+		return "", fmt.Errorf("no storage domain selected for disk profile %s", profileName)
+	}
+
 	// For now use the first one.
-	log.Infof("found %d storage domain(s) for disk profile %s", len(domains), profileName)
-	return domains[0].Name, nil
+	log.Infof("using storage domain %s for disk profile %s", domain.Name, profileName)
+	return domain.Name, nil
 }
 
 func getStorageDomainsFromDiskProfile(config *config.Config, diskProfileName string) ([]*storagedomain.StorageDomain, error) {
@@ -60,4 +73,20 @@ func getStorageDomainsFromDiskProfile(config *config.Config, diskProfileName str
 
 	// build the list of storage domains
 	return sdList, nil
+}
+
+// return domains that have status == active and external status == ok/info
+func filterDomains(domains []*storagedomain.StorageDomain) ([]*storagedomain.StorageDomain, error) {
+	results := []*storagedomain.StorageDomain{}
+	for i, d := range domains {
+		if d.Status == storagedomain.StatusActive &&
+			(d.ExternalStatus == storagedomain.ExternalStatusOK || d.ExternalStatus == storagedomain.ExternalStatusInfo) {
+			results = append(results, domains[i])
+			log.Infof("Including storage domain %s in selection list. Status is %s, ExternalStatus is %s", d.Name)
+		} else {
+			log.Infof("Ignoring storage domain %s. Status is %s, ExternalStatus is %s",
+				d.Name, d.Status, d.ExternalStatus, d.ExternalStatus)
+		}
+	}
+	return results, nil
 }
