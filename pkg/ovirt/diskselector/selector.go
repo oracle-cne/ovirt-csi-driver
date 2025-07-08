@@ -82,10 +82,10 @@ func filterDomains(domains []*storagedomain.StorageDomain) ([]*storagedomain.Sto
 		if d.Status == storagedomain.StatusActive &&
 			(d.ExternalStatus == storagedomain.ExternalStatusOK || d.ExternalStatus == storagedomain.ExternalStatusInfo) {
 			results = append(results, domains[i])
-			log.Infof("Including storage domain %s in selection list. Status is %s, ExternalStatus is %s", d.Name)
+			log.Infof("Including storage domain %s in selection list", d.Name)
 		} else {
 			log.Infof("Ignoring storage domain %s. Status is %s, ExternalStatus is %s",
-				d.Name, d.Status, d.ExternalStatus, d.ExternalStatus)
+				d.Name, d.Status, d.ExternalStatus)
 		}
 	}
 	return results, nil
