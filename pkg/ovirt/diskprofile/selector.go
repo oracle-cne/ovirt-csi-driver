@@ -1,4 +1,4 @@
-package diskselector
+package diskprofile
 
 import (
 	"fmt"
@@ -19,7 +19,7 @@ func SelectStorageDomainFromDiskProfile(config *config.Config, profileName strin
 	}
 
 	// filter out the domains that cannot be used
-	domains, err = filterDomains(domains)
+	domains, err = getUseableDomains(domains)
 	if domains == nil {
 		return "", fmt.Errorf("no storage domains found with the acceptable status or external status")
 	}
@@ -75,17 +75,17 @@ func getStorageDomainsFromDiskProfile(config *config.Config, diskProfileName str
 	return sdList, nil
 }
 
-// return domains that have status == active and external status == ok/info
-func filterDomains(domains []*storagedomain.StorageDomain) ([]*storagedomain.StorageDomain, error) {
+// return domains that have external status == ok/info
+func getUseableDomains(domains []*storagedomain.StorageDomain) ([]*storagedomain.StorageDomain, error) {
 	results := []*storagedomain.StorageDomain{}
 	for i, d := range domains {
-		if d.Status == storagedomain.StatusActive &&
-			(d.ExternalStatus == storagedomain.ExternalStatusOK || d.ExternalStatus == storagedomain.ExternalStatusInfo) {
+		if d.ExternalStatus == storagedomain.ExternalStatusOK ||
+			d.ExternalStatus == storagedomain.ExternalStatusInfo {
 			results = append(results, domains[i])
 			log.Infof("Including storage domain %s in selection list", d.Name)
 		} else {
-			log.Infof("Ignoring storage domain %s. Status is %s, ExternalStatus is %s",
-				d.Name, d.Status, d.ExternalStatus)
+			log.Infof("Ignoring storage domain %s. ExternalStatus is %s",
+				d.Name, d.ExternalStatus)
 		}
 	}
 	return results, nil

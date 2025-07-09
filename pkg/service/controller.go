@@ -3,7 +3,7 @@ package service
 import (
 	"fmt"
 	"github.com/ovirt/csi-driver/pkg/config"
-	"github.com/ovirt/csi-driver/pkg/ovirt/diskselector"
+	"github.com/ovirt/csi-driver/pkg/ovirt/diskprofile"
 	"strconv"
 
 	"github.com/container-storage-interface/spec/lib/go/csi"
@@ -405,6 +405,6 @@ func getStorageDomainName(req *csi.CreateVolumeRequest) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("error getting ovirt config: %v", err)
 	}
-	sdName, err := diskselector.SelectStorageDomainFromDiskProfile(ovconfig, diskProfileName, policy)
+	sdName, err := diskprofile.SelectStorageDomainFromDiskProfile(ovconfig, diskProfileName, policy)
 	return sdName, err
 }

@@ -1,4 +1,4 @@
-package diskselector
+package diskprofile
 
 import (
 	"fmt"
