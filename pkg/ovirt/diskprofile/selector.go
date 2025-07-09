@@ -15,44 +15,43 @@ func SelectStorageDomainFromDiskProfile(config *config.Config, profileName strin
 		return "", err
 	}
 	if domains == nil {
-		return "", fmt.Errorf("no storage domains found for disk profile %s", profileName)
+		return "", fmt.Errorf("No storage domains found for disk profile %s", profileName)
 	}
 
 	// filter out the domains that cannot be used
 	domains, err = getUseableDomains(domains)
 	if domains == nil {
-		return "", fmt.Errorf("no storage domains found with the acceptable status or external status")
+		return "", fmt.Errorf("No storage domains found with the acceptable external status")
 	}
 
 	domain, err := selectDomainUsingPolicy(domains, policy)
 	if err != nil {
-		return "", fmt.Errorf("error selecting domain using policy %s: %v", policy, err)
+		return "", fmt.Errorf("Error selecting domain using policy %s: %s", policy, err.Error())
 	}
 	if domain == nil {
-		return "", fmt.Errorf("no storage domain selected for disk profile %s", profileName)
+		return "", fmt.Errorf("No storage domain selected for disk profile %s", profileName)
 	}
 
-	// For now use the first one.
-	log.Infof("using storage domain %s for disk profile %s", domain.Name, profileName)
+	log.Infof("Selected storage domain %s for disk profile %s", domain.Name, profileName)
 	return domain.Name, nil
 }
 
 func getStorageDomainsFromDiskProfile(config *config.Config, diskProfileName string) ([]*storagedomain.StorageDomain, error) {
 	ovcli, err := ovclient.GetOVClient(config)
 	if err != nil {
-		return nil, fmt.Errorf("error getting ovirt client: %s", err.Error())
+		return nil, fmt.Errorf("Error getting ovirt client: %s", err.Error())
 	}
 
 	// get the disk profiles by name
 	diskProfiles, err := disk_profile.GetDiskProfilesByName(ovcli, diskProfileName)
 	if err != nil {
-		return nil, fmt.Errorf("error getting disk profiles by disk profile name %s: %s", diskProfileName, err.Error())
+		return nil, fmt.Errorf("Error getting disk profiles by disk profile name %s: %s", diskProfileName, err.Error())
 	}
 
 	// get all storage domains
 	storageDomainList, err := storagedomain.GetStorageDomains(ovcli)
 	if err != nil {
-		return nil, fmt.Errorf("error getting storage domain list: %s", err.Error())
+		return nil, fmt.Errorf("Error getting storage domain list: %s", err.Error())
 	}
 
 	// create a map of storage domains by id
