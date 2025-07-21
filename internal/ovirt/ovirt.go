@@ -1,10 +1,12 @@
 package ovirt
 
 import (
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 
+	"encoding/base64"
 	kloglogger "github.com/ovirt/go-ovirt-client-log-klog/v2"
 	ovirtclient "github.com/ovirt/go-ovirt-client/v2"
 	"gopkg.in/yaml.v2"
@@ -16,13 +18,23 @@ const defaultOvirtConfigEnvVar = "OVIRT_CONFIG"
 type Config struct {
 	URL      string `yaml:"ovirt_url"`
 	Username string `yaml:"ovirt_username"`
-	Password string `yaml:"ovirt_password"`
+	Password string `yaml:"ovirt_password,omitempty"`
+	Base64   string `yaml:"ovirt_base64,omitempty"`
 	CAFile   string `yaml:"ovirt_cafile,omitempty"`
 	Insecure bool   `yaml:"ovirt_insecure,omitempty"`
 }
 
 func NewClient() (ovirtclient.Client, error) {
 	ovirtConfig, err := GetOvirtConfig()
+	if err != nil {
+		return nil, fmt.Errorf("Error getting ovirt config: %v", err)
+	}
+
+	ovirtConfig, err = ensureBase64PasswordInConfig(ovirtConfig)
+	if err != nil {
+		return nil, err
+	}
+
 	tls := ovirtclient.TLS()
 	if ovirtConfig.Insecure {
 		tls.Insecure()
@@ -31,7 +43,7 @@ func NewClient() (ovirtclient.Client, error) {
 		tls.CACertsFromFile(ovirtConfig.CAFile)
 	}
 	logger := kloglogger.New()
-	//TODO: HANDLE VERBUSE
+	//TODO: HANDLE VERBOSE
 	client, err := ovirtclient.New(
 		ovirtConfig.URL,
 		ovirtConfig.Username,
@@ -40,9 +52,7 @@ func NewClient() (ovirtclient.Client, error) {
 		logger,
 		nil,
 	)
-	if err != nil {
-		return nil, err
-	}
+
 	return client, nil
 }
 
@@ -50,7 +60,7 @@ func NewClient() (ovirtclient.Client, error) {
 // 1. OVIRT_CONFIG env variable
 // 2  $defaultOvirtConfigPath
 func LoadOvirtConfig() ([]byte, error) {
-	data, err := ioutil.ReadFile(discoverPath())
+	data, err := ioutil.ReadFile(DiscoverConfigFilePath())
 	if err != nil {
 		return nil, err
 	}
@@ -75,7 +85,7 @@ func GetOvirtConfig() (*Config, error) {
 	return &c, nil
 }
 
-func discoverPath() string {
+func DiscoverConfigFilePath() string {
 	path, _ := os.LookupEnv(defaultOvirtConfigEnvVar)
 	if path != "" {
 		return path
@@ -92,6 +102,31 @@ func (c *Config) Save() error {
 		return err
 	}
 
-	path := discoverPath()
+	path := DiscoverConfigFilePath()
 	return ioutil.WriteFile(path, out, os.FileMode(0600))
+}
+
+// ensureBase64PasswordInConfig ensures that the password on disk is in base64
+func ensureBase64PasswordInConfig(config *Config) (*Config, error) {
+	pw := config.Password
+	if pw != "" {
+		// password is in clear text. Base64 encode it and remove the clear-text password.
+		pw = config.Password
+		config.Base64 = base64.StdEncoding.EncodeToString([]byte(pw))
+		config.Password = ""
+		if err := config.Save(); err != nil {
+			return nil, err
+		}
+	}
+	if config.Base64 == "" {
+		return nil, fmt.Errorf("Config file is missing both Password and PasswordBase64")
+	}
+
+	decoded, err := base64.StdEncoding.DecodeString(config.Base64)
+	if err != nil {
+		return nil, fmt.Errorf("Error decoding base64 password: %v", err)
+	}
+
+	config.Password = string(decoded)
+	return config, nil
 }

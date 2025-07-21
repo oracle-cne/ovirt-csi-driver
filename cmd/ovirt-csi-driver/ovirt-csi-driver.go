@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"flag"
+	"fmt"
 	"math/rand"
 	"os"
 	"time"
@@ -26,11 +27,11 @@ var (
 )
 
 func init() {
-	flag.Set("logtostderr", "true")
 	klog.InitFlags(flag.CommandLine)
 }
 
 func main() {
+	flag.Set("logtostderr", "true")
 	flag.Parse()
 	rand.Seed(time.Now().UnixNano())
 	handle()
@@ -47,12 +48,31 @@ func handle() {
 	if err != nil {
 		klog.Fatalf("Failed to initialize ovirt client %s", err)
 	}
+	klog.Infof("Success verifying connection to ovirt server")
+
+	klog.Infof("Calling config.GetConfig()\n")
 
 	// Get a config to talk to the apiserver
 	restConfig, err := config.GetConfig()
 	if err != nil {
 		klog.Fatal(err)
 	}
+
+	clientSet, err := kubernetes.NewForConfig(restConfig)
+	if err != nil {
+		klog.Infof("error getting rest config")
+		klog.Fatal(err)
+	}
+
+	klog.Infof("Testing access to Kubernets API server\n")
+	nodeList, err := clientSet.CoreV1().Nodes().List(context.Background(), metav1.ListOptions{})
+	if err != nil {
+		klog.Fatal(err)
+	}
+	if len(nodeList.Items) == 0 {
+		klog.Fatal(fmt.Errorf("no nodes found in Kubernetes cluster"))
+	}
+	klog.Infof("Found %d nodes in cluster\n", len(nodeList.Items))
 
 	opts := manager.Options{
 		Namespace:          *namespace,
@@ -74,10 +94,6 @@ func handle() {
 	// get the node object by name and pass the VM ID because it is the node
 	// id from the storage perspective. It will be used for attaching disks
 	var nodeId ovirtclient.VMID
-	clientSet, err := kubernetes.NewForConfig(restConfig)
-	if err != nil {
-		klog.Fatal(err)
-	}
 
 	if *nodeName != "" {
 		get, err := clientSet.CoreV1().Nodes().Get(context.Background(), *nodeName, metav1.GetOptions{})

@@ -23,13 +23,28 @@ type OvirtCSIDriver struct {
 
 // NewOvirtCSIDriver creates a driver instance
 func NewOvirtCSIDriver(ovirtClient ovirtclient.Client, nodeId ovirtclient.VMID) *OvirtCSIDriver {
-	d := OvirtCSIDriver{
-		IdentityService:   &IdentityService{ovirtClient},
-		ControllerService: &ControllerService{ovirtClient: ovirtClient},
-		NodeService:       &NodeService{nodeId: nodeId, ovirtClient: ovirtClient},
-		ovirtClient:       ovirtClient,
+	var d *OvirtCSIDriver
+	if string(nodeId) == "" {
+		klog.Info("Creating driver for controller")
+
+		// controller plugin
+		d = &OvirtCSIDriver{
+			IdentityService:   &IdentityService{ovirtClient},
+			ControllerService: &ControllerService{ovirtClient: ovirtClient},
+			ovirtClient:       ovirtClient,
+		}
+	} else {
+		klog.Info("Creating driver for node")
+
+		// node plugin
+		d = &OvirtCSIDriver{
+			IdentityService: &IdentityService{ovirtClient},
+			NodeService:     &NodeService{nodeId: nodeId, ovirtClient: ovirtClient},
+			ovirtClient:     ovirtClient,
+		}
 	}
-	return &d
+
+	return d
 }
 
 // Run will initiate the grpc services Identity, Controller, and Node.
