@@ -6,6 +6,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"reflect"
 	"sync"
 
 	"github.com/container-storage-interface/spec/lib/go/csi"
@@ -99,13 +100,16 @@ func (s *nonBlockingGRPCServer) serve(endpoint string, ids csi.IdentityServer, c
 	server := grpc.NewServer(opts...)
 	s.server = server
 
-	if ids != nil {
+	if !(ids == nil || (reflect.ValueOf(ids).Kind() == reflect.Ptr && reflect.ValueOf(ids).IsNil())) {
+		klog.Infof("Registering Identity Server")
 		csi.RegisterIdentityServer(server, ids)
 	}
-	if cs != nil {
+	if !(cs == nil || (reflect.ValueOf(cs).Kind() == reflect.Ptr && reflect.ValueOf(cs).IsNil())) {
+		klog.Infof("Registering Controller Server")
 		csi.RegisterControllerServer(server, cs)
 	}
-	if ns != nil {
+	if !(ns == nil || (reflect.ValueOf(ns).Kind() == reflect.Ptr && reflect.ValueOf(ns).IsNil())) {
+		klog.Infof("Registering Node Server")
 		csi.RegisterNodeServer(server, ns)
 	}
 
