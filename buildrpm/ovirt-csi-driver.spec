@@ -38,7 +38,7 @@ install -m 755 bin/%{app_name} %{buildroot}/%{app_name}
 
 %changelog
 * Mon Jul 21 2025 Paul Mackin <paul.mackin@oracle.com> - 4.21.0-1
-- Update versions to 4.21.0 for disk_profile work for merging to master
+- Update versions to 4.21.0 for disk_profile work for merging to master.
 
 * Wed Jun 25 2025 Paul Mackin <paul.mackin@oracle.com> - 4.20.0-4
 - Base64 encode password in config file.
