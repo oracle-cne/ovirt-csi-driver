@@ -5,7 +5,7 @@
 %endif
 
 %global app_name                ovirt-csi-driver
-%global app_version             4.21.1
+%global app_version             4.21.0
 %global oracle_release_version  1
 %global _buildhost              build-ol%{?oraclelinux}-%{?_arch}.oracle.com
 
