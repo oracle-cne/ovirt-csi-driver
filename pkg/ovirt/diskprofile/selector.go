@@ -12,6 +12,8 @@ import (
 	log "k8s.io/klog"
 )
 
+// SelectStorageDomainFromDiskProfile selects a storage domain from the list of storage domains
+// associated with the specified disk profile name.
 func SelectStorageDomainFromDiskProfile(config *config.Config, profileName string, policy string) (string, error) {
 	domains, err := getStorageDomainsFromDiskProfile(config, profileName)
 	if err != nil {
@@ -27,6 +29,7 @@ func SelectStorageDomainFromDiskProfile(config *config.Config, profileName strin
 		return "", fmt.Errorf("No storage domains found with the acceptable external status")
 	}
 
+	// pick the best domain given the policy
 	domain, err := selectDomainUsingPolicy(domains, policy)
 	if err != nil {
 		return "", fmt.Errorf("Error selecting domain using policy %s: %s", policy, err.Error())
@@ -39,6 +42,7 @@ func SelectStorageDomainFromDiskProfile(config *config.Config, profileName strin
 	return domain.Name, nil
 }
 
+// Get all the storage domains associated with the disk profile name
 func getStorageDomainsFromDiskProfile(config *config.Config, diskProfileName string) ([]*storagedomain.StorageDomain, error) {
 	ovcli, err := ovclient.GetOVClient(config)
 	if err != nil {
@@ -57,7 +61,7 @@ func getStorageDomainsFromDiskProfile(config *config.Config, diskProfileName str
 		return nil, fmt.Errorf("Error getting storage domain list: %s", err.Error())
 	}
 
-	// create a map of storage domains by id
+	// create a map of storage domains by storage domain id
 	sdMap := make(map[string]*storagedomain.StorageDomain)
 	for i, sd := range storageDomainList.StorageDomains {
 		sdMap[sd.Id] = &storageDomainList.StorageDomains[i]
@@ -73,7 +77,7 @@ func getStorageDomainsFromDiskProfile(config *config.Config, diskProfileName str
 		sdList = append(sdList, sd)
 	}
 
-	// build the list of storage domains
+	// return the list of storage domains that can potentially be used
 	return sdList, nil
 }
 

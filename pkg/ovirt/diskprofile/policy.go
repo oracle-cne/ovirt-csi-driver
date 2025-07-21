@@ -11,7 +11,8 @@ import (
 
 const PolicyLeastUsed = "leastUsed"
 
-// selectDomainUsingPolicy selects the best domain using the policy
+// Select the best domain using the policy
+// The current policy picks the storage domain that is least used (most space).
 func selectDomainUsingPolicy(domains []*storagedomain.StorageDomain, policy string) (*storagedomain.StorageDomain, error) {
 	switch policy {
 	case PolicyLeastUsed:
