@@ -2,8 +2,6 @@ package service
 
 import (
 	"fmt"
-	"github.com/ovirt/csi-driver/pkg/config"
-	"github.com/ovirt/csi-driver/pkg/ovirt/diskprofile"
 	"strconv"
 
 	"github.com/container-storage-interface/spec/lib/go/csi"
@@ -15,11 +13,9 @@ import (
 )
 
 const (
-	ParameterDiskProfileName              = "diskProfileName"
-	ParameterStorageDomainSelectionPolicy = "storageDomainSelectionPolicy"
-	ParameterStorageDomainName            = "storageDomainName"
-	ParameterThinProvisioning             = "thinProvisioning"
-	minimumDiskSize                       = 1 * 1024 * 1024
+	ParameterStorageDomainName = "storageDomainName"
+	ParameterThinProvisioning  = "thinProvisioning"
+	minimumDiskSize            = 1 * 1024 * 1024
 )
 
 // ControllerService implements the controller interface
@@ -36,13 +32,10 @@ var ControllerCaps = []csi.ControllerServiceCapability_RPC_Type{
 // CreateVolume creates the disk for the request, unattached from any VM
 func (c *ControllerService) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest) (*csi.CreateVolumeResponse, error) {
 	klog.Infof("Creating disk %s", req.Name)
-
-	storageDomainName, err := getStorageDomainName(req)
-	if err != nil {
-		return nil, err
-	}
-	if storageDomainName == "" {
-		return nil, fmt.Errorf("error: unable to determine storage domain name")
+	storageDomainName := req.Parameters[ParameterStorageDomainName]
+	if len(storageDomainName) == 0 {
+		return nil, fmt.Errorf("error required storageClass paramater %s wasn't set",
+			ParameterStorageDomainName)
 	}
 	diskName := req.Name
 	if len(diskName) == 0 {
@@ -380,31 +373,4 @@ func (c *ControllerService) ControllerGetCapabilities(context.Context, *csi.Cont
 		)
 	}
 	return &csi.ControllerGetCapabilitiesResponse{Capabilities: caps}, nil
-}
-
-func getStorageDomainName(req *csi.CreateVolumeRequest) (string, error) {
-	storageDomainName := req.Parameters[ParameterStorageDomainName]
-	diskProfileName := req.Parameters[ParameterDiskProfileName]
-	policy := req.Parameters[ParameterStorageDomainSelectionPolicy]
-	if len(storageDomainName) > 0 && len(diskProfileName) > 0 {
-		return "", fmt.Errorf("error: you cannot specify both storageDomainName and diskProfileName")
-	}
-
-	if len(storageDomainName) > 0 {
-		klog.Infof("using storageDomainName %s", storageDomainName)
-		return storageDomainName, nil
-	}
-
-	if len(diskProfileName) == 0 {
-		return "", fmt.Errorf("error: you must specify either storageDomainName or diskProfileName")
-	}
-
-	klog.Infof("finding a storageDomain for disk profile %s", diskProfileName)
-
-	ovconfig, err := config.GetOvirtConfig()
-	if err != nil {
-		return "", fmt.Errorf("error getting ovirt config: %v", err)
-	}
-	sdName, err := diskprofile.SelectStorageDomainFromDiskProfile(ovconfig, diskProfileName, policy)
-	return sdName, err
 }
