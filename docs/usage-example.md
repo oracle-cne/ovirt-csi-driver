@@ -115,7 +115,7 @@ Once the PVC is deleted, then the PV will automatically get deleted, and the dis
 in your OLVM storage domain will likewise get deleted.
 
 
-# Addendum - Installing the ovirt-csi-driver from the catalog
+# Addendum 1 - Installing the ovirt-csi-driver from the catalog
 **NOTE** This is only needed if you wish to install the ovirt-csi-driver manually.
 This automatic installation described above in step 1 is the preferred mechanism.  
 With that said, the instructions to do these steps manually are described below.
@@ -204,7 +204,29 @@ ocne application install --catalog embedded --name ovirt-csi-driver --kubeconfig
 
 You can provide an override file to change any of the values defined in the values.yaml file of the catalog application.
 
+# Addendum 2 - Using OLVM Disk Profiles
+The ovirt-csi-driver allows you to specify an OLVM disk profile name in the StorageClass instead of the storage domain name.
+The driver will query the OLVM server and get all the storage domains associated with the specified disk profile, 
+then select the one that has the most space (least used).  You can use either diskProfileName or storageDomainName in a storageClass,
+but not both at the same time.
+
+For Example:
+```text
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: oblock
+  annotations:
+    storageclass.kubernetes.io/is-default-class: "true"
+provisioner: csi.ovirt.org
+parameters:
+  diskProfileName: test
+  thinProvisioning: "true"
+  fsType: ext4
+```
+
 # Summary
 This document shows how to use the ovirt-csi-driver that was automatically installed OLVM CAPI cluster was created.
 In addition, the document also describes the steps required for manually installing the ovirt-csi-driver from 
 the catalog.
+
