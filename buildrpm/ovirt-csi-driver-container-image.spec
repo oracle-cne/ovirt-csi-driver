@@ -45,6 +45,7 @@ podman save -o %{app_name}.tar %{docker_image}
 %changelog
 * Mon Oct 6 2025 Michael Gianatassio <michael.gianatassio@oracle.com> - 4.21.0-2
 - Update version for next release
+- Update base image to be OracleLinux:9-slim
 
 * Mon Jul 21 2025 Paul Mackin <paul.mackin@oracle.com> - 4.21.0-1
 - Update versions to 4.21.0 for disk_profile work for merging to master.
