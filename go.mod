@@ -13,7 +13,7 @@ require (
 	golang.org/x/net v0.45.0
 	golang.org/x/sys v0.37.0
 	google.golang.org/grpc v1.64.1
-	gopkg.in/yaml.v2 v2.4.0
+	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b
 	k8s.io/apimachinery v0.21.2
 	k8s.io/client-go v0.21.2
 	k8s.io/klog v1.0.0
@@ -55,7 +55,7 @@ require (
 	google.golang.org/genproto v0.0.0-20201110150050-8816d57aaa9a // indirect
 	google.golang.org/protobuf v1.33.0 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
-	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b // indirect
+	gopkg.in/yaml.v2 v2.4.0 // indirect
 	k8s.io/api v0.21.2 // indirect
 	k8s.io/component-base v0.21.2 // indirect
 	k8s.io/klog/v2 v2.10.0 // indirect
@@ -63,5 +63,3 @@ require (
 	sigs.k8s.io/structured-merge-diff/v4 v4.1.0 // indirect
 	sigs.k8s.io/yaml v1.2.0 // indirect
 )
-
-replace gopkg.in/yaml.v3 => gopkg.in/yaml.v3 v3.0.0-20220521103104-8f96da9f5d5e
