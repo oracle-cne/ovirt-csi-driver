@@ -13,7 +13,7 @@ require (
 	golang.org/x/net v0.45.0
 	golang.org/x/sys v0.37.0
 	google.golang.org/grpc v1.64.1
-	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b
+	gopkg.in/yaml.v3 v3.0.1
 	k8s.io/apimachinery v0.21.2
 	k8s.io/client-go v0.21.2
 	k8s.io/klog v1.0.0
