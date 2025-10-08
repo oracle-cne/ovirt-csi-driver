@@ -11,7 +11,7 @@ require (
 	github.com/ovirt/go-ovirt-client/v2 v2.0.1
 	github.com/pkg/errors v0.9.1
 	golang.org/x/net v0.45.0
-	golang.org/x/sys v0.36.0
+	golang.org/x/sys v0.37.0
 	google.golang.org/grpc v1.64.1
 	gopkg.in/yaml.v2 v2.4.0
 	k8s.io/apimachinery v0.21.2
