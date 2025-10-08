@@ -1,6 +1,6 @@
 module github.com/ovirt/csi-driver
 
-go 1.19
+go 1.23.0
 
 require (
 	github.com/container-storage-interface/spec v1.2.0
@@ -10,8 +10,8 @@ require (
 	github.com/ovirt/go-ovirt-client-log/v3 v3.0.0
 	github.com/ovirt/go-ovirt-client/v2 v2.0.1
 	github.com/pkg/errors v0.9.1
-	golang.org/x/net v0.34.0
-	golang.org/x/sys v0.29.0
+	golang.org/x/net v0.38.0
+	golang.org/x/sys v0.31.0
 	google.golang.org/grpc v1.64.1
 	gopkg.in/yaml.v2 v2.4.0
 	k8s.io/apimachinery v0.21.2
@@ -47,8 +47,8 @@ require (
 	github.com/prometheus/procfs v0.6.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
 	golang.org/x/oauth2 v0.18.0 // indirect
-	golang.org/x/term v0.28.0 // indirect
-	golang.org/x/text v0.21.0 // indirect
+	golang.org/x/term v0.30.0 // indirect
+	golang.org/x/text v0.23.0 // indirect
 	golang.org/x/time v0.0.0-20210611083556-38a9dc6acbc6 // indirect
 	gomodules.xyz/jsonpatch/v2 v2.2.0 // indirect
 	google.golang.org/appengine v1.6.8 // indirect
