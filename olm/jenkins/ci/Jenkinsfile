@@ -10,5 +10,10 @@ olcnePipeline(
         architectures: ['x86_64', 'aarch64'],
         platforms: ['ol9'],
         yumOL9Repos: ['ol9_UEKR7'],
+        customPlatformStages: [
+                customPlatformSteps: [
+                        ol9: [container: [enabled: true ], buildContainerRpms: [enabled: true ]],
+                ],
+        ],
 )
 
