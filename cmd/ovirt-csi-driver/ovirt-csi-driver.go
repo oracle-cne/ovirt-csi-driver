@@ -4,15 +4,14 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"github.com/ovirt/csi-driver/pkg/ovirt/ovclient"
 	"math/rand"
 	"os"
 	"time"
 
 	"github.com/ovirt/csi-driver/internal/ovirt"
 	ovconfig "github.com/ovirt/csi-driver/pkg/config"
+	"github.com/ovirt/csi-driver/pkg/ovirt/ovclient"
 	"github.com/ovirt/csi-driver/pkg/service"
-
 	ovirtclient "github.com/ovirt/go-ovirt-client/v2"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -23,10 +22,9 @@ import (
 )
 
 var (
-	endpoint            = flag.String("endpoint", "unix:/csi/csi.sock", "CSI endpoint")
-	namespace           = flag.String("namespace", "", "Namespace to run the controllers on")
-	ovirtConfigFilePath = flag.String("ovirt-conf", "", "Path to ovirt api config")
-	nodeName            = flag.String("node-name", "", "The node name - the node this pods runs on")
+	endpoint  = flag.String("endpoint", "unix:/csi/csi.sock", "CSI endpoint")
+	namespace = flag.String("namespace", "", "Namespace to run the controllers on")
+	nodeName  = flag.String("node-name", "", "The node name - the node this pods runs on")
 )
 
 func init() {

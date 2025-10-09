@@ -1,13 +1,13 @@
 package config
 
 import (
+	"encoding/base64"
 	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 
-	"encoding/base64"
-	"gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v3"
 )
 
 const defaultOvirtConfigEnvVar = "OVIRT_CONFIG"
