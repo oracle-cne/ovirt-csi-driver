@@ -17,7 +17,7 @@ test:
 # Build the binary
 .PHONY: build
 build: verify
-	go build -o $(BINDIR)/ovirt-csi-driver -ldflags '-X version.Version=$(REV)' github.com/ovirt/csi-driver/cmd/ovirt-csi-driver
+	go build -trimpath=false -o $(BINDIR)/ovirt-csi-driver -ldflags '-X version.Version=$(REV) -X main.version=$(REV)' github.com/ovirt/csi-driver/cmd/ovirt-csi-driver
 
 .PHONY: verify
 verify: fmt vet
