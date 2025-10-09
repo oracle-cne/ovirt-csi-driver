@@ -5,6 +5,8 @@ import (
 	"strconv"
 
 	"github.com/container-storage-interface/spec/lib/go/csi"
+	"github.com/ovirt/csi-driver/pkg/config"
+	"github.com/ovirt/csi-driver/pkg/ovirt/diskprofile"
 	ovirtclient "github.com/ovirt/go-ovirt-client/v2"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc/codes"
@@ -63,14 +65,14 @@ func (c *ControllerService) CreateVolume(ctx context.Context, req *csi.CreateVol
 	disks, err := c.ovirtClient.ListDisksByAlias(diskName, ovirtclient.ContextStrategy(ctx))
 	if err != nil {
 		msg := fmt.Errorf("error while finding disk %s by name, error: %w", diskName, err)
-		klog.Errorf(msg.Error())
+		klog.Error(msg.Error())
 		return nil, msg
 	}
 	if len(disks) > 1 {
 		msg := fmt.Errorf(
 			"found more then one disk with the name %s,"+
 				"please contanct the oVirt admin to check the name duplication", diskName)
-		klog.Errorf(msg.Error())
+		klog.Error(msg.Error())
 		return nil, msg
 	}
 	var disk ovirtclient.Disk
@@ -78,7 +80,7 @@ func (c *ControllerService) CreateVolume(ctx context.Context, req *csi.CreateVol
 	if len(disks) == 0 {
 		disk, err = c.createDisk(ctx, diskName, storageDomainName, requiredSize, thinProvisioning)
 		if err != nil {
-			klog.Errorf(err.Error())
+			klog.Error(err.Error())
 			return nil, err
 		}
 	} else {
@@ -160,14 +162,14 @@ func (c *ControllerService) DeleteVolume(ctx context.Context, req *csi.DeleteVol
 			return &csi.DeleteVolumeResponse{}, nil
 		}
 		msg := fmt.Errorf("error while finding disk %s by id, error: %w", vId, err)
-		klog.Errorf(msg.Error())
+		klog.Error(msg.Error())
 		return nil, msg
 	}
 
 	err = c.ovirtClient.RemoveDisk(vId, ovirtclient.ContextStrategy(ctx))
 	if err != nil {
 		msg := fmt.Errorf("failed removing disk %s by id, error: %w", vId, err)
-		klog.Errorf(msg.Error())
+		klog.Error(msg.Error())
 		return nil, msg
 	}
 	klog.Infof("Finished removing disk %s", vId)
@@ -189,7 +191,7 @@ func (c *ControllerService) ControllerPublishVolume(
 	da, err := diskAttachmentByVmAndDisk(ctx, c.ovirtClient, nId, vId)
 	if err != nil {
 		msg := fmt.Errorf("failed finding disk attachment, error: %w", err)
-		klog.Errorf(msg.Error())
+		klog.Error(msg.Error())
 		return nil, msg
 	}
 	if da != nil {
@@ -213,7 +215,7 @@ func (c *ControllerService) ControllerPublishVolume(
 		ovirtclient.ContextStrategy(ctx))
 	if err != nil {
 		msg := fmt.Errorf("failed creating disk attachment, error: %w", err)
-		klog.Errorf(msg.Error())
+		klog.Error(msg.Error())
 		return nil, msg
 	}
 	klog.Infof("Attached Disk %v to VM %s", vId, nId)
@@ -234,7 +236,7 @@ func (c *ControllerService) ControllerUnpublishVolume(ctx context.Context, req *
 	attachment, err := diskAttachmentByVmAndDisk(ctx, c.ovirtClient, nId, vId)
 	if err != nil {
 		msg := fmt.Errorf("failed finding disk attachment, error: %w", err)
-		klog.Errorf(msg.Error())
+		klog.Error(msg.Error())
 		return nil, msg
 	}
 	if attachment == nil {
@@ -244,7 +246,7 @@ func (c *ControllerService) ControllerUnpublishVolume(ctx context.Context, req *
 	err = c.ovirtClient.RemoveDiskAttachment(nId, attachment.ID(), ovirtclient.ContextStrategy(ctx))
 	if err != nil {
 		msg := fmt.Errorf("failed removing disk attachment %s, error: %w", attachment.ID(), err)
-		klog.Errorf(msg.Error())
+		klog.Error(msg.Error())
 		return nil, msg
 	}
 	return &csi.ControllerUnpublishVolumeResponse{}, nil

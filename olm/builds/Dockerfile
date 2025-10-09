@@ -1,4 +1,4 @@
-FROM ghcr.io/oracle/oraclelinux:8-slim
+FROM ghcr.io/oracle/oraclelinux:9-slim
 
 COPY rpms /tmp/
 
