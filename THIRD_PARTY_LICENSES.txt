@@ -4,7 +4,7 @@
 SPDX:Apache-2.0
 
 ---------------------------------- Copyright -----------------------------------
-Copyright (c) 2025, Oracle and/or its affiliates.
+(no copyrights found)
 
 -------------------------- Fourth Party Dependencies ---------------------------
 
