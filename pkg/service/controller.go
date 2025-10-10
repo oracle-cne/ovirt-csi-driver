@@ -5,8 +5,6 @@ import (
 	"strconv"
 
 	"github.com/container-storage-interface/spec/lib/go/csi"
-	"github.com/ovirt/csi-driver/pkg/config"
-	"github.com/ovirt/csi-driver/pkg/ovirt/diskprofile"
 	ovirtclient "github.com/ovirt/go-ovirt-client/v2"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc/codes"
