@@ -1,17 +1,19 @@
 @Library('olcne-pipeline') _
 import com.oracle.olcne.pipeline.BranchPattern
 
-String version = '4.20.0'
+String version = '4.20.0-1'
 String imgTag  = "v" + version
 
 olcnePipeline(
-        branchPattern: new BranchPattern(master: 'oracle/release/.*', feature: '(?!^release/.*$)(^.*$)'),
+        branchPattern: new BranchPattern(master: 'release/.*', feature: '(?!^release/.*$)(^.*$)'),
         containers: [('container-registry.oracle.com/olcne/ovirt-csi-driver:' + imgTag): 'olcne/ovirt-csi-driver:' + imgTag],
-        golang: '1.22.9',
         architectures: ['x86_64', 'aarch64'],
-        platforms: ['ol8'],
-        publishImage: false,
-        ol8ModulesToDisable: ['go-toolset:ol8'],
-        yumOL8Repos: ['ol8_codeready_builder', 'ol8_UEKR7'],
+        platforms: ['ol9'],
+        yumOL9Repos: ['ol9_UEKR7'],
+        customPlatformStages: [
+                customPlatformSteps: [
+                        ol9: [container: [enabled: true ], buildContainerRpms: [enabled: true ]],
+                ],
+        ],
 )
 

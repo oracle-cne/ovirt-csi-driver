@@ -6,7 +6,7 @@
 
 %global app_name                ovirt-csi-driver
 %global app_version             4.20.0
-%global oracle_release_version  4
+%global oracle_release_version  5
 %global _buildhost              build-ol%{?oraclelinux}-%{?_arch}.oracle.com
 
 Name:           %{app_name}-container-image
@@ -26,7 +26,7 @@ CSI driver for oVirt
 
 %build
 %global rpm_name %{app_name}-%{version}-%{release}.%{_build_arch}
-%global docker_image container-registry.oracle.com/olcne/%{app_name}:v%{version}
+%global docker_image container-registry.oracle.com/olcne/%{app_name}:v%{version}-1
 
 yum clean all
 yumdownloader --destdir=${PWD}/rpms %{rpm_name}
@@ -43,6 +43,9 @@ podman save -o %{app_name}.tar %{docker_image}
 /usr/local/share/olcne/%{app_name}.tar
 
 %changelog
+* Fri Oct 10 2025 Michael Gianatassio <michael.gianatassio@oracle.com> - 4.20.0-5
+- Update golang build flags and dependencies
+
 * Wed Jun 25 2025 Paul Mackin <paul.mackin@oracle.com> - 4.20.0-4
 - Base64 encode password in config file.
 

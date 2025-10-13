@@ -20,10 +20,9 @@ import (
 )
 
 var (
-	endpoint            = flag.String("endpoint", "unix:/csi/csi.sock", "CSI endpoint")
-	namespace           = flag.String("namespace", "", "Namespace to run the controllers on")
-	ovirtConfigFilePath = flag.String("ovirt-conf", "", "Path to ovirt api config")
-	nodeName            = flag.String("node-name", "", "The node name - the node this pods runs on")
+	endpoint  = flag.String("endpoint", "unix:/csi/csi.sock", "CSI endpoint")
+	namespace = flag.String("namespace", "", "Namespace to run the controllers on")
+	nodeName  = flag.String("node-name", "", "The node name - the node this pods runs on")
 )
 
 func init() {

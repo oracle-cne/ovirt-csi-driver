@@ -1,15 +1,15 @@
 package ovirt
 
 import (
+	"encoding/base64"
 	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 
-	"encoding/base64"
 	kloglogger "github.com/ovirt/go-ovirt-client-log-klog/v2"
 	ovirtclient "github.com/ovirt/go-ovirt-client/v2"
-	"gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v3"
 )
 
 const defaultOvirtConfigEnvVar = "OVIRT_CONFIG"
