@@ -18,7 +18,7 @@ You need to specify the following:
 * fsType - set file system type.  The driver will format the volume if there is no file system.  
 
 Create the StorageClass yaml file.  
-```
+```shell
 cat <<'EOF' > ./storage-class.yaml 
 apiVersion: storage.k8s.io/v1
 kind: StorageClass
@@ -36,7 +36,7 @@ EOF
 ```
 
 Apply the YAML file:
-```
+```shell
 kubectl apply -f ./storage-class.yaml
 ```
 
@@ -45,7 +45,7 @@ Next create a PVC YAML file that uses the StorageClass.  Once you apply this fil
 the ovirt-csi-driver to create the PV.  
 
 Here is an example:  
-```
+```shell
 cat <<'EOF' > ./pvc.yaml 
 kind: PersistentVolumeClaim
 apiVersion: v1
@@ -61,19 +61,19 @@ spec:
 EOF  
 ```
 Apply the YAML file:
-```
+```shell
 kubectl apply -f ./pvc.yaml
 ```
 
 Run the following command to see the pv that got created:
-```
+```shell
 kubectl get pv
 ```
 
 # Step 4 - Create a Pod to use the PVC
 The following example shows a sample pod that mounts the volume by using a PVC.  
 
-```
+```shell
 cat <<'EOF' > ./pod.yaml 
 apiVersion: v1 
 kind: Pod 
@@ -83,7 +83,7 @@ spec:
   containers:
   - image: container-registry.oracle.com/os/oraclelinux:8
     name: testpod
-    command: ["sh", "-c", "while true; do ls -la /opt; echo this file system was made availble using ovirt-csi-driver; sleep 1m; done"]
+    command: ["sh", "-c", "while true; do ls -la /opt; echo this file system was made available using ovirt-csi-driver; sleep 1m; done"]
     imagePullPolicy: IfNotPresent
     volumeMounts:
     - name: pv0002
@@ -96,18 +96,18 @@ EOF
 ```
 
 Apply the YAML file:
-```
+```shell
 kubectl apply -f ./pod.yaml
 ```
 
 Once the pod is running you can see the attached volume
-```
+```shell
 kubectl exec -it test bash -- sh -c 'ls /demo'
 ```
 # Step 5 - Cleanup
 You can now delete the Pod, PVC, and PV that you created.  You can leave the StorageClass for further usage or delete it.  
 Do not delete the CsiDriver.
-```
+```shell
 kubectl delete -f ./pod.yaml
 kubectl delete -f ./pvc.yaml
 ```
