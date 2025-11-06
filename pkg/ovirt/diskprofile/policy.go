@@ -5,8 +5,9 @@ package diskprofile
 
 import (
 	"fmt"
-	"github.com/ovirt/csi-driver/pkg/ovirt/rest/storagedomain"
 	"strconv"
+
+	"github.com/ovirt/csi-driver/pkg/ovirt/rest/storagedomain"
 )
 
 const PolicyLeastUsed = "leastUsed"
@@ -23,17 +24,23 @@ func selectDomainUsingPolicy(domains []*storagedomain.StorageDomain, policy stri
 }
 
 func selectLeastUsed(domains []*storagedomain.StorageDomain) (*storagedomain.StorageDomain, error) {
+	if len(domains) == 0 {
+		return nil, fmt.Errorf("no storage domains provided")
+	}
 	var selected *storagedomain.StorageDomain
-	var maxsize int64
-	for i, d := range domains {
+	maxsize := int64(-1)
+	for _, d := range domains {
 		size, err := strconv.ParseInt(d.Available, 10, 64)
 		if err != nil {
-			return nil, fmt.Errorf("failed to parse disk size: %w", err)
+			return nil, fmt.Errorf("failed to parse disk size '%v' for domain '%v': %w", d.Available, d, err)
 		}
 		if size > maxsize {
-			selected = domains[i]
+			selected = d
 			maxsize = size
 		}
+	}
+	if selected == nil {
+		return nil, fmt.Errorf("no valid domain found")
 	}
 	return selected, nil
 }
