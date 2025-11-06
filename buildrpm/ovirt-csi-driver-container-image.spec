@@ -6,7 +6,7 @@
 
 %global app_name                ovirt-csi-driver
 %global app_version             4.21.0
-%global oracle_release_version  2
+%global oracle_release_version  3
 %global _buildhost              build-ol%{?oraclelinux}-%{?_arch}.oracle.com
 
 Name:           %{app_name}-container-image
@@ -43,6 +43,9 @@ podman save -o %{app_name}.tar %{docker_image}
 /usr/local/share/olcne/%{app_name}.tar
 
 %changelog
+* Thu Nov 6 2025 Michael Gianatassio <michael.gianatassio@oracle.com> - 4.21.0-3
+- Add randomization logic to choose which storage domain to select when more than once choice exists
+
 * Mon Oct 6 2025 Michael Gianatassio <michael.gianatassio@oracle.com> - 4.21.0-2
 - Update version for next release
 - Update base image to be OracleLinux:9-slim
