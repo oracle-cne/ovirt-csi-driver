@@ -5,7 +5,9 @@ package diskprofile
 
 import (
 	"fmt"
+	"math/rand"
 	"strconv"
+	"time"
 
 	"github.com/ovirt/csi-driver/pkg/ovirt/rest/storagedomain"
 )
@@ -27,20 +29,31 @@ func selectLeastUsed(domains []*storagedomain.StorageDomain) (*storagedomain.Sto
 	if len(domains) == 0 {
 		return nil, fmt.Errorf("no storage domains provided")
 	}
-	var selected *storagedomain.StorageDomain
+
 	maxsize := int64(-1)
+	var sameChoices []*storagedomain.StorageDomain
+
 	for _, d := range domains {
 		size, err := strconv.ParseInt(d.Available, 10, 64)
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse disk size '%v' for domain '%v': %w", d.Available, d, err)
 		}
 		if size > maxsize {
-			selected = d
 			maxsize = size
+			sameChoices = []*storagedomain.StorageDomain{d}
+		} else if size == maxsize {
+			sameChoices = append(sameChoices, d)
 		}
 	}
-	if selected == nil {
+
+	if len(sameChoices) == 0 {
 		return nil, fmt.Errorf("no valid domain found")
 	}
-	return selected, nil
+	if len(sameChoices) == 1 {
+		return sameChoices[0], nil
+	}
+
+	// Randomly pick which storage domain to use when more than one choice exists
+	rnd := rand.New(rand.NewSource(time.Now().UnixNano()))
+	return sameChoices[rnd.Intn(len(sameChoices))], nil
 }
