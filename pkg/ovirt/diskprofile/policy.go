@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/ovirt/csi-driver/pkg/ovirt/rest/storagedomain"
+	log "k8s.io/klog"
 )
 
 const PolicyLeastUsed = "leastUsed"
@@ -38,6 +39,7 @@ func selectLeastUsed(domains []*storagedomain.StorageDomain) (*storagedomain.Sto
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse disk size '%v' for domain '%v': %w", d.Available, d, err)
 		}
+		log.Infof("The available size of storage domain '%s' is '%s'", d.Name, d.Available)
 		if size > maxsize {
 			maxsize = size
 			sameChoices = []*storagedomain.StorageDomain{d}
@@ -45,6 +47,8 @@ func selectLeastUsed(domains []*storagedomain.StorageDomain) (*storagedomain.Sto
 			sameChoices = append(sameChoices, d)
 		}
 	}
+
+	log.Infof("The number of same-choices is %d", len(sameChoices))
 
 	if len(sameChoices) == 0 {
 		return nil, fmt.Errorf("no valid domain found")
