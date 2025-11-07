@@ -41,6 +41,7 @@ func (c *ControllerService) CreateVolume(ctx context.Context, req *csi.CreateVol
 	if err != nil {
 		return nil, err
 	}
+	klog.Infof("Creating disk %s for storage domain %s", req.Name, storageDomainName)
 	if storageDomainName == "" {
 		return nil, fmt.Errorf("error: unable to determine storage domain name")
 	}
@@ -133,7 +134,7 @@ func (c *ControllerService) createDisk(
 	if err != nil {
 		return nil, fmt.Errorf("creating oVirt disk %s, error: %w", diskName, err)
 	}
-	klog.Infof("Finished creating disk %s", diskName)
+	klog.Infof("Finished creating disk %s for storage domain %s", diskName, sd.Name())
 	return disk, nil
 
 }
