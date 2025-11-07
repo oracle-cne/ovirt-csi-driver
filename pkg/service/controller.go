@@ -92,6 +92,13 @@ func (c *ControllerService) CreateVolume(ctx context.Context, req *csi.CreateVol
 		}
 	} else {
 		disk = disks[0]
+		klog.Infof("Disk %s already exists, dumping it's storage domains", diskName)
+		sds, err := disk.StorageDomains()
+		if err == nil {
+			for _, sd := range sds {
+				klog.Infof("Disk %s has storage domain %s", diskName, sd.Name())
+			}
+		}
 	}
 	return &csi.CreateVolumeResponse{
 		Volume: &csi.Volume{
