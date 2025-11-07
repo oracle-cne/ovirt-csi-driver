@@ -124,7 +124,7 @@ func (c *ControllerService) createDisk(
 	if err != nil {
 		return nil, fmt.Errorf("failed searching for storage domain with name %s, error: %w", storageDomainName, err)
 	}
-	klog.Infof("Called getStorageDomainByName with name %s and got back storage domain %s", storageDomainName, sd.Name)
+	klog.Infof("Called getStorageDomainByName with name %s and got back storage domain %s", storageDomainName, sd.Name())
 	imageFormat := handleCreateVolumeImageFormat(sd.StorageType(), thinProvisioning)
 
 	disk, err := c.ovirtClient.CreateDisk(
