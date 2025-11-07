@@ -84,6 +84,7 @@ func (c *ControllerService) CreateVolume(ctx context.Context, req *csi.CreateVol
 	var disk ovirtclient.Disk
 	// If disk doesn't already exist then create it
 	if len(disks) == 0 {
+		klog.Infof("Calling create disk %s for storage domain %s", diskName, storageDomainName)
 		disk, err = c.createDisk(ctx, diskName, storageDomainName, requiredSize, thinProvisioning)
 		if err != nil {
 			klog.Error(err.Error())
@@ -123,6 +124,7 @@ func (c *ControllerService) createDisk(
 	if err != nil {
 		return nil, fmt.Errorf("failed searching for storage domain with name %s, error: %w", storageDomainName, err)
 	}
+	klog.Infof("Called getStorageDomainByName with name %s and got back storage domain %s", storageDomainName, sd.Name)
 	imageFormat := handleCreateVolumeImageFormat(sd.StorageType(), thinProvisioning)
 
 	disk, err := c.ovirtClient.CreateDisk(
