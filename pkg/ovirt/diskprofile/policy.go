@@ -39,7 +39,7 @@ func selectLeastUsed(domains []*storagedomain.StorageDomain) (*storagedomain.Sto
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse disk size '%v' for domain '%v': %w", d.Available, d, err)
 		}
-		log.Infof("The available size of storage domain '%s' is '%s'", d.Name, d.Available)
+		log.Infof("The available size of storage domain '%s' is '%s', used: '%s'", d.Name, d.Available, d.Used)
 		if size > maxsize {
 			maxsize = size
 			sameChoices = []*storagedomain.StorageDomain{d}
