@@ -55,7 +55,7 @@ func (n *NodeService) NodeStageVolume(ctx context.Context, req *csi.NodeStageVol
 		return &csi.NodeStageVolumeResponse{}, nil
 	}
 
-	device, err := n.getDeviceByAttachmentId(ctx, vId, ovirtclient.VMID(n.nodeId))
+	device, err := n.getDeviceByAttachmentId(ctx, vId, n.nodeId)
 	if err != nil {
 		klog.Errorf("Failed to fetch device by attachment-id for volume %s on node %s", vId, n.nodeId)
 		return nil, err
@@ -101,7 +101,7 @@ func (n *NodeService) NodePublishVolume(ctx context.Context, req *csi.NodePublis
 	if vId == "" {
 		return nil, fmt.Errorf("NodeStageVolumeRequest didn't contain required field VolumeId")
 	}
-	device, err := n.getDeviceByAttachmentId(ctx, vId, ovirtclient.VMID(n.nodeId))
+	device, err := n.getDeviceByAttachmentId(ctx, vId, n.nodeId)
 	if err != nil {
 		klog.Errorf("Failed to fetch device by attachment-id for volume %s on node %s", vId, n.nodeId)
 		return nil, err
