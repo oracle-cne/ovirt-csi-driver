@@ -98,7 +98,7 @@ func (c *ControllerService) CreateVolume(ctx context.Context, req *csi.CreateVol
 		}
 	} else {
 		disk = disks[0]
-		klog.Infof("Disk %s already exists, dumping it's storage domains", diskName)
+		klog.Infof("Disk %s already exists with status %s, dumping it's storage domains", diskName, disk.Status())
 		sds, err := disk.StorageDomains()
 		if err == nil {
 			for _, sd := range sds {
@@ -106,6 +106,7 @@ func (c *ControllerService) CreateVolume(ctx context.Context, req *csi.CreateVol
 			}
 		}
 		klog.Infof("Release mutex to create disk %s", diskName)
+		disk.Status()
 		c.createMutex.Unlock()
 	}
 	return &csi.CreateVolumeResponse{
