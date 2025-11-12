@@ -51,14 +51,14 @@ func (c *ControllerService) CreateVolume(ctx context.Context, req *csi.CreateVol
 
 	storageDomainName, err := getStorageDomainName(req)
 	if err != nil {
-		return c.createVolumeErrorReturn(err, diskName)
+		return nil, err
 	}
 	klog.Infof("Creating disk %s for storage domain %s", diskName, storageDomainName)
 	if storageDomainName == "" {
-		return c.createVolumeErrorReturn(fmt.Errorf("error: unable to determine storage domain name"), diskName)
+		return nil, fmt.Errorf("error: unable to determine storage domain name")
 	}
 	if len(diskName) == 0 {
-		return c.createVolumeErrorReturn(fmt.Errorf("error required request parameter Name was not provided"), diskName)
+		return nil, fmt.Errorf("error required request parameter Name was not provided")
 	}
 	thinProvisioning, err := strconv.ParseBool(req.Parameters[ParameterThinProvisioning])
 	if req.Parameters[ParameterThinProvisioning] == "" {
@@ -66,15 +66,15 @@ func (c *ControllerService) CreateVolume(ctx context.Context, req *csi.CreateVol
 		thinProvisioning = true
 	}
 	if err != nil {
-		return c.createVolumeErrorReturn(fmt.Errorf(
+		return nil, fmt.Errorf(
 			"failed to parse storage class field %s, expected 'true' or 'false' but got %s",
-			ParameterThinProvisioning, req.Parameters[ParameterThinProvisioning]), diskName)
+			ParameterThinProvisioning, req.Parameters[ParameterThinProvisioning])
 	}
 	// Check access mode
 	for _, capability := range req.GetVolumeCapabilities() {
 		if capability.AccessMode.Mode != csi.VolumeCapability_AccessMode_SINGLE_NODE_READER_ONLY &&
 			capability.AccessMode.Mode != csi.VolumeCapability_AccessMode_SINGLE_NODE_WRITER {
-			return c.createVolumeErrorReturn(status.Error(codes.InvalidArgument, fmt.Sprintf("unsupported access mode %s, currently only RWO is supported", capability.AccessMode.Mode)), diskName)
+			return nil, status.Error(codes.InvalidArgument, fmt.Sprintf("unsupported access mode %s, currently only RWO is supported", capability.AccessMode.Mode))
 		}
 	}
 	requiredSize := req.CapacityRange.GetRequiredBytes()
@@ -83,14 +83,14 @@ func (c *ControllerService) CreateVolume(ctx context.Context, req *csi.CreateVol
 	if err != nil {
 		msg := fmt.Errorf("error while finding disk %s by name, error: %w", diskName, err)
 		klog.Error(msg.Error())
-		return c.createVolumeErrorReturn(msg, diskName)
+		return nil, msg
 	}
 	if len(disks) > 1 {
 		msg := fmt.Errorf(
 			"found more then one disk with the name %s,"+
 				"please contanct the oVirt admin to check the name duplication", diskName)
 		klog.Error(msg.Error())
-		return c.createVolumeErrorReturn(msg, diskName)
+		return nil, msg
 	}
 	var disk ovirtclient.Disk
 	// If disk doesn't already exist then create it
@@ -99,7 +99,7 @@ func (c *ControllerService) CreateVolume(ctx context.Context, req *csi.CreateVol
 		disk, err = c.createDisk(ctx, diskName, storageDomainName, requiredSize, thinProvisioning)
 		if err != nil {
 			klog.Error(err.Error())
-			return c.createVolumeErrorReturn(err, diskName)
+			return nil, err
 		}
 	} else {
 		disk = disks[0]
@@ -119,15 +119,9 @@ func (c *ControllerService) CreateVolume(ctx context.Context, req *csi.CreateVol
 	}, nil
 }
 
-func (c *ControllerService) createVolumeErrorReturn(err error, diskName string) (*csi.CreateVolumeResponse, error) {
-	// Release the mutex
-	klog.Infof("Releasing mutex for disk %s due to error %s", diskName, err.Error())
-	createMutex.Unlock()
-	return nil, err
-}
-
 func releaseMutex(c *ControllerService, ctx context.Context, diskName string) {
 	klog.Infof("Starting releaseMutex for disk %s", diskName)
+	var retryCount = 0
 	for {
 		if createMutex.TryLock() {
 			// The lock was released outside this routine (due to an error)
@@ -153,6 +147,14 @@ func releaseMutex(c *ControllerService, ctx context.Context, diskName string) {
 		}
 		if len(disks) == 1 && disks[0].Status() == ovirtclient.DiskStatusOK {
 			klog.Infof("Releasing mutex for disk %s because status is OK", diskName)
+			createMutex.Unlock()
+			return
+		}
+
+		// Give up after 5 seconds
+		retryCount++
+		if retryCount > 10 {
+			klog.Infof("Releasing mutex for disk %s because timed out waiting for disk to reach OK status", diskName)
 			createMutex.Unlock()
 			return
 		}
