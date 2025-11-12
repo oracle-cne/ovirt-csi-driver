@@ -27,8 +27,9 @@ const (
 // ControllerService implements the controller interface
 type ControllerService struct {
 	ovirtClient ovirtclient.Client
-	createMutex sync.Mutex
 }
+
+var createMutex sync.Mutex
 
 var ControllerCaps = []csi.ControllerServiceCapability_RPC_Type{
 	csi.ControllerServiceCapability_RPC_CREATE_DELETE_VOLUME,
@@ -42,7 +43,7 @@ func (c *ControllerService) CreateVolume(ctx context.Context, req *csi.CreateVol
 	klog.Infof("Creating disk %s", diskName)
 
 	klog.Infof("Acquiring mutex to create disk %s", diskName)
-	c.createMutex.Lock()
+	createMutex.Lock()
 	klog.Infof("Acquired mutex to create disk %s", diskName)
 
 	// Start go-routine that will watch to release the mutex when the disk reaches OK status
@@ -121,17 +122,17 @@ func (c *ControllerService) CreateVolume(ctx context.Context, req *csi.CreateVol
 func (c *ControllerService) createVolumeErrorReturn(err error, diskName string) (*csi.CreateVolumeResponse, error) {
 	// Release the mutex
 	klog.Infof("Releasing mutex for disk %s due to error %s", diskName, err.Error())
-	c.createMutex.Unlock()
+	createMutex.Unlock()
 	return nil, err
 }
 
 func releaseMutex(c *ControllerService, ctx context.Context, diskName string) {
 	klog.Infof("Starting releaseMutex for disk %s", diskName)
 	for {
-		if c.createMutex.TryLock() {
+		if createMutex.TryLock() {
 			// The lock was released outside this routine (due to an error)
 			klog.Infof("Exiting releaseMutex for disk %s due to an error", diskName)
-			c.createMutex.Unlock()
+			createMutex.Unlock()
 			return
 		}
 		// Release the lock if the disk status is OK
@@ -139,7 +140,7 @@ func releaseMutex(c *ControllerService, ctx context.Context, diskName string) {
 		if err != nil {
 			msg := fmt.Errorf("exiting releaseMutex due to error while finding disk %s by name, error: %w", diskName, err)
 			klog.Error(msg.Error())
-			c.createMutex.Unlock()
+			createMutex.Unlock()
 			return
 		}
 		if len(disks) > 1 {
@@ -147,12 +148,12 @@ func releaseMutex(c *ControllerService, ctx context.Context, diskName string) {
 				"exiting releaseMutex because found more then one disk with the name %s,"+
 					"please contanct the oVirt admin to check the name duplication", diskName)
 			klog.Error(msg.Error())
-			c.createMutex.Unlock()
+			createMutex.Unlock()
 			return
 		}
 		if len(disks) == 1 && disks[0].Status() == ovirtclient.DiskStatusOK {
 			klog.Infof("Releasing mutex for disk %s because status is OK", diskName)
-			c.createMutex.Unlock()
+			createMutex.Unlock()
 			return
 		}
 
