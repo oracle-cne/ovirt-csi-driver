@@ -3,6 +3,7 @@ package service
 import (
 	"fmt"
 	"strconv"
+	"sync"
 
 	"github.com/container-storage-interface/spec/lib/go/csi"
 	"github.com/ovirt/csi-driver/pkg/config"
@@ -25,6 +26,7 @@ const (
 // ControllerService implements the controller interface
 type ControllerService struct {
 	ovirtClient ovirtclient.Client
+	createMutex sync.Mutex
 }
 
 var ControllerCaps = []csi.ControllerServiceCapability_RPC_Type{
@@ -35,19 +37,23 @@ var ControllerCaps = []csi.ControllerServiceCapability_RPC_Type{
 
 // CreateVolume creates the disk for the request, unattached from any VM
 func (c *ControllerService) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest) (*csi.CreateVolumeResponse, error) {
-	klog.Infof("Creating disk %s", req.Name)
+	diskName := req.Name
+	klog.Infof("Creating disk %s", diskName)
+
+	klog.Infof("Acquiring mutex to create disk %s", diskName)
+	c.createMutex.Lock()
+	klog.Infof("Acquired mutex to create disk %s", diskName)
 
 	storageDomainName, err := getStorageDomainName(req)
 	if err != nil {
-		return nil, err
+		return c.createVolumeErrorReturn(err, diskName)
 	}
-	klog.Infof("Creating disk %s for storage domain %s", req.Name, storageDomainName)
+	klog.Infof("Creating disk %s for storage domain %s", diskName, storageDomainName)
 	if storageDomainName == "" {
-		return nil, fmt.Errorf("error: unable to determine storage domain name")
+		return c.createVolumeErrorReturn(fmt.Errorf("error: unable to determine storage domain name"), diskName)
 	}
-	diskName := req.Name
 	if len(diskName) == 0 {
-		return nil, fmt.Errorf("error required request parameter Name was not provided")
+		return c.createVolumeErrorReturn(fmt.Errorf("error required request parameter Name was not provided"), diskName)
 	}
 	thinProvisioning, err := strconv.ParseBool(req.Parameters[ParameterThinProvisioning])
 	if req.Parameters[ParameterThinProvisioning] == "" {
@@ -55,15 +61,15 @@ func (c *ControllerService) CreateVolume(ctx context.Context, req *csi.CreateVol
 		thinProvisioning = true
 	}
 	if err != nil {
-		return nil, fmt.Errorf(
+		c.createVolumeErrorReturn(fmt.Errorf(
 			"failed to parse storage class field %s, expected 'true' or 'false' but got %s",
-			ParameterThinProvisioning, req.Parameters[ParameterThinProvisioning])
+			ParameterThinProvisioning, req.Parameters[ParameterThinProvisioning]), diskName)
 	}
 	// Check access mode
 	for _, cap := range req.GetVolumeCapabilities() {
 		if cap.AccessMode.Mode != csi.VolumeCapability_AccessMode_SINGLE_NODE_READER_ONLY &&
 			cap.AccessMode.Mode != csi.VolumeCapability_AccessMode_SINGLE_NODE_WRITER {
-			return nil, status.Error(codes.InvalidArgument, fmt.Sprintf("unsupported access mode %s, currently only RWO is supported", cap.AccessMode.Mode))
+			return c.createVolumeErrorReturn(status.Error(codes.InvalidArgument, fmt.Sprintf("unsupported access mode %s, currently only RWO is supported", cap.AccessMode.Mode)), diskName)
 		}
 	}
 	requiredSize := req.CapacityRange.GetRequiredBytes()
@@ -72,14 +78,14 @@ func (c *ControllerService) CreateVolume(ctx context.Context, req *csi.CreateVol
 	if err != nil {
 		msg := fmt.Errorf("error while finding disk %s by name, error: %w", diskName, err)
 		klog.Error(msg.Error())
-		return nil, msg
+		return c.createVolumeErrorReturn(msg, diskName)
 	}
 	if len(disks) > 1 {
 		msg := fmt.Errorf(
 			"found more then one disk with the name %s,"+
 				"please contanct the oVirt admin to check the name duplication", diskName)
 		klog.Error(msg.Error())
-		return nil, msg
+		return c.createVolumeErrorReturn(msg, diskName)
 	}
 	var disk ovirtclient.Disk
 	// If disk doesn't already exist then create it
@@ -88,7 +94,7 @@ func (c *ControllerService) CreateVolume(ctx context.Context, req *csi.CreateVol
 		disk, err = c.createDisk(ctx, diskName, storageDomainName, requiredSize, thinProvisioning)
 		if err != nil {
 			klog.Error(err.Error())
-			return nil, err
+			return c.createVolumeErrorReturn(err, diskName)
 		}
 	} else {
 		disk = disks[0]
@@ -99,6 +105,8 @@ func (c *ControllerService) CreateVolume(ctx context.Context, req *csi.CreateVol
 				klog.Infof("Disk %s has storage domain %s", diskName, sd.Name())
 			}
 		}
+		klog.Infof("Release mutex to create disk %s", diskName)
+		c.createMutex.Unlock()
 	}
 	return &csi.CreateVolumeResponse{
 		Volume: &csi.Volume{
@@ -106,6 +114,13 @@ func (c *ControllerService) CreateVolume(ctx context.Context, req *csi.CreateVol
 			VolumeId:      string(disk.ID()),
 		},
 	}, nil
+}
+
+func (c *ControllerService) createVolumeErrorReturn(err error, diskName string) (*csi.CreateVolumeResponse, error) {
+	// Release the mutex
+	klog.Infof("Releasing mutex for disk %s", diskName)
+	c.createMutex.Unlock()
+	return nil, err
 }
 
 func (c *ControllerService) createDisk(
