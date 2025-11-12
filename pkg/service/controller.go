@@ -150,7 +150,7 @@ func releaseMutex(c *ControllerService, ctx context.Context, diskName string) {
 			c.createMutex.Unlock()
 			return
 		}
-		if disks[0].Status() == ovirtclient.DiskStatusOK {
+		if len(disks) == 1 && disks[0].Status() == ovirtclient.DiskStatusOK {
 			klog.Infof("Releasing mutex for disk %s because status is OK", diskName)
 			c.createMutex.Unlock()
 			return
