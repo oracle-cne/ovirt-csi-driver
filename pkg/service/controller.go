@@ -40,8 +40,6 @@ var ControllerCaps = []csi.ControllerServiceCapability_RPC_Type{
 // CreateVolume creates the disk for the request, unattached from any VM
 func (c *ControllerService) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest) (*csi.CreateVolumeResponse, error) {
 	diskName := req.Name
-	klog.Infof("Creating disk %s", diskName)
-
 	klog.Infof("Requesting mutex to create disk %s", diskName)
 	createMutex.Lock()
 	klog.Infof("Acquired mutex to create disk %s", diskName)
@@ -95,7 +93,6 @@ func (c *ControllerService) CreateVolume(ctx context.Context, req *csi.CreateVol
 	var disk ovirtclient.Disk
 	// If disk doesn't already exist then create it
 	if len(disks) == 0 {
-		klog.Infof("Calling create disk %s for storage domain %s", diskName, storageDomainName)
 		disk, err = c.createDisk(ctx, diskName, storageDomainName, requiredSize, thinProvisioning)
 		if err != nil {
 			klog.Error(err.Error())
