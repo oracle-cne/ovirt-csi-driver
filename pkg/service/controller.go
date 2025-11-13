@@ -47,7 +47,7 @@ func (c *ControllerService) CreateVolume(ctx context.Context, req *csi.CreateVol
 	klog.Infof("Acquired mutex to create disk %s", diskName)
 
 	// Start go-routine that will watch to release the mutex when the disk reaches OK status
-	go releaseMutex(c, ctx, diskName)
+	go releaseMutex(c, ctx, diskName, &createMutex)
 
 	storageDomainName, err := getStorageDomainName(req)
 	if err != nil {
@@ -119,35 +119,31 @@ func (c *ControllerService) CreateVolume(ctx context.Context, req *csi.CreateVol
 	}, nil
 }
 
-func releaseMutex(c *ControllerService, ctx context.Context, diskName string) {
+func releaseMutex(c *ControllerService, ctx context.Context, diskName string, mtx *sync.Mutex) {
 	klog.Infof("Starting releaseMutex for disk %s", diskName)
 	var retryCount = 0
 	for {
-		if createMutex.TryLock() {
+		if mtx.TryLock() {
 			// The lock was released outside this routine (due to an error)
 			klog.Infof("Exiting releaseMutex for disk %s due to an error", diskName)
-			createMutex.Unlock()
+			mtx.Unlock()
 			return
 		}
 		// Release the lock if the disk status is OK
 		disks, err := c.ovirtClient.ListDisksByAlias(diskName, ovirtclient.ContextStrategy(ctx))
 		if err != nil {
-			msg := fmt.Errorf("exiting releaseMutex due to error while finding disk %s by name, error: %w", diskName, err)
-			klog.Error(msg.Error())
-			createMutex.Unlock()
+			klog.Errorf("exiting releaseMutex due to error while finding disk %s by name, error: %s", diskName, err.Error())
+			mtx.Unlock()
 			return
 		}
 		if len(disks) > 1 {
-			msg := fmt.Errorf(
-				"exiting releaseMutex because found more then one disk with the name %s,"+
-					"please contanct the oVirt admin to check the name duplication", diskName)
-			klog.Error(msg.Error())
-			createMutex.Unlock()
+			klog.Errorf("exiting releaseMutex because found more than one disk with the name %s. Please contact the oVirt admin about name duplication.", diskName)
+			mtx.Unlock()
 			return
 		}
 		if len(disks) == 1 && disks[0].Status() == ovirtclient.DiskStatusOK {
 			klog.Infof("Releasing mutex for disk %s because status is OK", diskName)
-			createMutex.Unlock()
+			mtx.Unlock()
 			return
 		}
 
@@ -155,7 +151,7 @@ func releaseMutex(c *ControllerService, ctx context.Context, diskName string) {
 		retryCount++
 		if retryCount > 10 {
 			klog.Infof("Releasing mutex for disk %s because timed out waiting for disk to reach OK status", diskName)
-			createMutex.Unlock()
+			mtx.Unlock()
 			return
 		}
 
