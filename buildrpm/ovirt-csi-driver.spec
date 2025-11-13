@@ -38,7 +38,7 @@ install -m 755 bin/%{app_name} %{buildroot}/%{app_name}
 
 %changelog
 * Thu Nov 6 2025 Michael Gianatassio <michael.gianatassio@oracle.com> - 4.21.0-3
-- Add randomization logic to choose which storage domain to select when more than once choice exists
+- Resolve issue of burst request to create PVCs getting allocated across available storage domains
 
 * Mon Oct 6 2025 Michael Gianatassio <michael.gianatassio@oracle.com> - 4.21.0-2
 - Update version for next release
