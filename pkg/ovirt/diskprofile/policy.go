@@ -48,8 +48,6 @@ func selectLeastUsed(domains []*storagedomain.StorageDomain) (*storagedomain.Sto
 		}
 	}
 
-	log.Infof("The number of same-choices is %d", len(sameChoices))
-
 	if len(sameChoices) == 0 {
 		return nil, fmt.Errorf("no valid domain found")
 	}

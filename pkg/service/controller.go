@@ -42,7 +42,7 @@ func (c *ControllerService) CreateVolume(ctx context.Context, req *csi.CreateVol
 	diskName := req.Name
 	klog.Infof("Creating disk %s", diskName)
 
-	klog.Infof("Acquiring mutex to create disk %s", diskName)
+	klog.Infof("Requesting mutex to create disk %s", diskName)
 	createMutex.Lock()
 	klog.Infof("Acquired mutex to create disk %s", diskName)
 
@@ -147,9 +147,9 @@ func releaseMutex(c *ControllerService, ctx context.Context, diskName string, mt
 			return
 		}
 
-		// Give up after 5 seconds
+		// Give up after 15 seconds
 		retryCount++
-		if retryCount > 10 {
+		if retryCount > 30 {
 			klog.Infof("Releasing mutex for disk %s because timed out waiting for disk to reach OK status", diskName)
 			mtx.Unlock()
 			return
@@ -183,7 +183,6 @@ func (c *ControllerService) createDisk(
 	if err != nil {
 		return nil, fmt.Errorf("failed searching for storage domain with name %s, error: %w", storageDomainName, err)
 	}
-	klog.Infof("Called getStorageDomainByName with name %s and got back storage domain %s", storageDomainName, sd.Name())
 	imageFormat := handleCreateVolumeImageFormat(sd.StorageType(), thinProvisioning)
 
 	disk, err := c.ovirtClient.CreateDisk(
