@@ -7,7 +7,7 @@ import (
 )
 
 var (
-	// set by ldflags
+	// VendorVersion - set by ldflags
 	VendorVersion = "0.1.1"
 	VendorName    = "csi.ovirt.org"
 )
