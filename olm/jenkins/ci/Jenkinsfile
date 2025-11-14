@@ -2,7 +2,7 @@
 import com.oracle.olcne.pipeline.BranchPattern
 
 String version = '4.21.0'
-String imgTag  = "v" + version + "-1"
+String imgTag  = "v" + version + "-2"
 
 olcnePipeline(
         branchPattern: new BranchPattern(master: 'release/.*', feature: '(?!^release/.*$)(^.*$)'),

@@ -26,7 +26,7 @@ CSI driver for oVirt
 
 %build
 %global rpm_name %{app_name}-%{version}-%{release}.%{_build_arch}
-%global docker_image container-registry.oracle.com/olcne/%{app_name}:v%{version}-1
+%global docker_image container-registry.oracle.com/olcne/%{app_name}:v%{version}-2
 
 yum clean all
 yumdownloader --destdir=${PWD}/rpms %{rpm_name}
