@@ -5,8 +5,12 @@ package diskprofile
 
 import (
 	"fmt"
-	"github.com/ovirt/csi-driver/pkg/ovirt/rest/storagedomain"
+	"math/rand"
 	"strconv"
+	"time"
+
+	"github.com/ovirt/csi-driver/pkg/ovirt/rest/storagedomain"
+	"k8s.io/klog"
 )
 
 const PolicyLeastUsed = "leastUsed"
@@ -23,17 +27,35 @@ func selectDomainUsingPolicy(domains []*storagedomain.StorageDomain, policy stri
 }
 
 func selectLeastUsed(domains []*storagedomain.StorageDomain) (*storagedomain.StorageDomain, error) {
-	var selected *storagedomain.StorageDomain
-	var maxsize int64
-	for i, d := range domains {
+	if len(domains) == 0 {
+		return nil, fmt.Errorf("no storage domains provided")
+	}
+
+	maxsize := int64(-1)
+	var sameChoices []*storagedomain.StorageDomain
+
+	for _, d := range domains {
 		size, err := strconv.ParseInt(d.Available, 10, 64)
 		if err != nil {
-			return nil, fmt.Errorf("failed to parse disk size: %w", err)
+			return nil, fmt.Errorf("failed to parse disk size '%v' for domain '%v': %w", d.Available, d, err)
 		}
+		klog.Infof("The available size of storage domain '%s' is '%s', used: '%s'", d.Name, d.Available, d.Used)
 		if size > maxsize {
-			selected = domains[i]
 			maxsize = size
+			sameChoices = []*storagedomain.StorageDomain{d}
+		} else if size == maxsize {
+			sameChoices = append(sameChoices, d)
 		}
 	}
-	return selected, nil
+
+	if len(sameChoices) == 0 {
+		return nil, fmt.Errorf("no valid domain found")
+	}
+	if len(sameChoices) == 1 {
+		return sameChoices[0], nil
+	}
+
+	// Randomly pick which storage domain to use when more than one choice exists
+	rnd := rand.New(rand.NewSource(time.Now().UnixNano()))
+	return sameChoices[rnd.Intn(len(sameChoices))], nil
 }

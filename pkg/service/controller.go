@@ -3,6 +3,8 @@ package service
 import (
 	"fmt"
 	"strconv"
+	"sync"
+	"time"
 
 	"github.com/container-storage-interface/spec/lib/go/csi"
 	"github.com/ovirt/csi-driver/pkg/config"
@@ -27,6 +29,8 @@ type ControllerService struct {
 	ovirtClient ovirtclient.Client
 }
 
+var createMutex sync.Mutex
+
 var ControllerCaps = []csi.ControllerServiceCapability_RPC_Type{
 	csi.ControllerServiceCapability_RPC_CREATE_DELETE_VOLUME,
 	csi.ControllerServiceCapability_RPC_PUBLISH_UNPUBLISH_VOLUME, // attach/detach
@@ -35,16 +39,22 @@ var ControllerCaps = []csi.ControllerServiceCapability_RPC_Type{
 
 // CreateVolume creates the disk for the request, unattached from any VM
 func (c *ControllerService) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest) (*csi.CreateVolumeResponse, error) {
-	klog.Infof("Creating disk %s", req.Name)
+	diskName := req.Name
+	klog.Infof("Requesting mutex to create disk %s", diskName)
+	createMutex.Lock()
+	klog.Infof("Acquired mutex to create disk %s", diskName)
+
+	// Start go-routine that will watch to release the mutex when the disk reaches OK status
+	go waitForDiskStatusOK(c, ctx, diskName, &createMutex)
 
 	storageDomainName, err := getStorageDomainName(req)
 	if err != nil {
 		return nil, err
 	}
+	klog.Infof("Creating disk %s for storage domain %s", diskName, storageDomainName)
 	if storageDomainName == "" {
 		return nil, fmt.Errorf("error: unable to determine storage domain name")
 	}
-	diskName := req.Name
 	if len(diskName) == 0 {
 		return nil, fmt.Errorf("error required request parameter Name was not provided")
 	}
@@ -59,10 +69,10 @@ func (c *ControllerService) CreateVolume(ctx context.Context, req *csi.CreateVol
 			ParameterThinProvisioning, req.Parameters[ParameterThinProvisioning])
 	}
 	// Check access mode
-	for _, cap := range req.GetVolumeCapabilities() {
-		if cap.AccessMode.Mode != csi.VolumeCapability_AccessMode_SINGLE_NODE_READER_ONLY &&
-			cap.AccessMode.Mode != csi.VolumeCapability_AccessMode_SINGLE_NODE_WRITER {
-			return nil, status.Error(codes.InvalidArgument, fmt.Sprintf("unsupported access mode %s, currently only RWO is supported", cap.AccessMode.Mode))
+	for _, capability := range req.GetVolumeCapabilities() {
+		if capability.AccessMode.Mode != csi.VolumeCapability_AccessMode_SINGLE_NODE_READER_ONLY &&
+			capability.AccessMode.Mode != csi.VolumeCapability_AccessMode_SINGLE_NODE_WRITER {
+			return nil, status.Error(codes.InvalidArgument, fmt.Sprintf("unsupported access mode %s, currently only RWO is supported", capability.AccessMode.Mode))
 		}
 	}
 	requiredSize := req.CapacityRange.GetRequiredBytes()
@@ -90,6 +100,7 @@ func (c *ControllerService) CreateVolume(ctx context.Context, req *csi.CreateVol
 		}
 	} else {
 		disk = disks[0]
+		klog.Infof("Disk %s already exists with status %s", diskName, disk.Status())
 	}
 	return &csi.CreateVolumeResponse{
 		Volume: &csi.Volume{
@@ -97,6 +108,47 @@ func (c *ControllerService) CreateVolume(ctx context.Context, req *csi.CreateVol
 			VolumeId:      string(disk.ID()),
 		},
 	}, nil
+}
+
+func waitForDiskStatusOK(c *ControllerService, ctx context.Context, diskName string, mtx *sync.Mutex) {
+	klog.Infof("Starting waitForDiskStatusOK for disk %s", diskName)
+	var retryCount = 0
+	for {
+		if mtx.TryLock() {
+			// The lock was released outside this routine (due to an error)
+			klog.Infof("Exiting waitForDiskStatusOK for disk %s due to an error outside this function", diskName)
+			mtx.Unlock()
+			return
+		}
+		// Release the lock if the disk status is OK
+		disks, err := c.ovirtClient.ListDisksByAlias(diskName, ovirtclient.ContextStrategy(ctx))
+		if err != nil {
+			klog.Errorf("exiting waitForDiskStatusOK due to error while finding disk %s by name, error: %s", diskName, err.Error())
+			mtx.Unlock()
+			return
+		}
+		if len(disks) > 1 {
+			klog.Errorf("exiting waitForDiskStatusOK because found more than one disk with the name %s. Please contact the oVirt admin about name duplication.", diskName)
+			mtx.Unlock()
+			return
+		}
+		if len(disks) == 1 && disks[0].Status() == ovirtclient.DiskStatusOK {
+			klog.Infof("Releasing mutex for disk %s because status is OK", diskName)
+			mtx.Unlock()
+			return
+		}
+
+		// Give up after 20 seconds
+		retryCount++
+		if retryCount > 40 {
+			klog.Infof("Releasing mutex for disk %s because timed out waiting for disk to reach OK status", diskName)
+			mtx.Unlock()
+			return
+		}
+
+		// Wait and try again
+		time.Sleep(500 * time.Millisecond)
+	}
 }
 
 func (c *ControllerService) createDisk(
@@ -133,7 +185,7 @@ func (c *ControllerService) createDisk(
 	if err != nil {
 		return nil, fmt.Errorf("creating oVirt disk %s, error: %w", diskName, err)
 	}
-	klog.Infof("Finished creating disk %s", diskName)
+	klog.Infof("Finished creating disk %s for storage domain %s", diskName, sd.Name())
 	return disk, nil
 
 }
@@ -141,7 +193,7 @@ func (c *ControllerService) createDisk(
 func handleCreateVolumeImageFormat(
 	storageType ovirtclient.StorageDomainType,
 	thinProvisioning bool) ovirtclient.ImageFormat {
-	// Use COW diskformat only when thin provisioning is requested and storage domain
+	// Use COW disk format only when thin provisioning is requested and storage domain
 	// is a non file storage type (for example ISCSI)
 	if !isFileDomain(storageType) && thinProvisioning {
 		return ovirtclient.ImageFormatCow
@@ -257,37 +309,37 @@ func (c *ControllerService) ControllerUnpublishVolume(ctx context.Context, req *
 	return &csi.ControllerUnpublishVolumeResponse{}, nil
 }
 
-// ValidateVolumeCapabilities
+// ValidateVolumeCapabilities - Not implemented yet
 func (c *ControllerService) ValidateVolumeCapabilities(context.Context, *csi.ValidateVolumeCapabilitiesRequest) (*csi.ValidateVolumeCapabilitiesResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "")
 }
 
-// ListVolumes
+// ListVolumes - Not implemented yet
 func (c *ControllerService) ListVolumes(context.Context, *csi.ListVolumesRequest) (*csi.ListVolumesResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "")
 }
 
-// GetCapacity
+// GetCapacity - Not implemented yet
 func (c *ControllerService) GetCapacity(context.Context, *csi.GetCapacityRequest) (*csi.GetCapacityResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "")
 }
 
-// CreateSnapshot
+// CreateSnapshot - Not implemented yet
 func (c *ControllerService) CreateSnapshot(context.Context, *csi.CreateSnapshotRequest) (*csi.CreateSnapshotResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "")
 }
 
-// DeleteSnapshot
+// DeleteSnapshot - Not implemented yet
 func (c *ControllerService) DeleteSnapshot(context.Context, *csi.DeleteSnapshotRequest) (*csi.DeleteSnapshotResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "")
 }
 
-// ListSnapshots
+// ListSnapshots - Not implemented yet
 func (c *ControllerService) ListSnapshots(context.Context, *csi.ListSnapshotsRequest) (*csi.ListSnapshotsResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "")
 }
 
-// ControllerExpandVolume
+// ControllerExpandVolume - Not implemented yet
 func (c *ControllerService) ControllerExpandVolume(ctx context.Context, req *csi.ControllerExpandVolumeRequest) (*csi.ControllerExpandVolumeResponse, error) {
 	volumeID := ovirtclient.DiskID(req.GetVolumeId())
 	if len(volumeID) == 0 {
@@ -364,7 +416,7 @@ func (c *ControllerService) isNodeExpansionRequired(
 	return true, nil
 }
 
-// ControllerGetCapabilities
+// ControllerGetCapabilities - Not implemented yet
 func (c *ControllerService) ControllerGetCapabilities(context.Context, *csi.ControllerGetCapabilitiesRequest) (*csi.ControllerGetCapabilitiesResponse, error) {
 	caps := make([]*csi.ControllerServiceCapability, 0, len(ControllerCaps))
 	for _, capability := range ControllerCaps {
@@ -401,10 +453,10 @@ func getStorageDomainName(req *csi.CreateVolumeRequest) (string, error) {
 
 	klog.Infof("finding a storageDomain for disk profile %s", diskProfileName)
 
-	ovconfig, err := config.GetOvirtConfig()
+	ovirtConfig, err := config.GetOvirtConfig()
 	if err != nil {
 		return "", fmt.Errorf("error getting ovirt config: %v", err)
 	}
-	sdName, err := diskprofile.SelectStorageDomainFromDiskProfile(ovconfig, diskProfileName, policy)
+	sdName, err := diskprofile.SelectStorageDomainFromDiskProfile(ovirtConfig, diskProfileName, policy)
 	return sdName, err
 }
