@@ -5,10 +5,11 @@ package disk_profile
 
 import (
 	"fmt"
+	"strings"
+
 	"github.com/ovirt/csi-driver/pkg/ovirt/ovclient"
 	"k8s.io/apimachinery/pkg/util/json"
 	log "k8s.io/klog"
-	"strings"
 )
 
 // GetDiskProfiles gets all disk profiles.
@@ -18,14 +19,14 @@ func GetDiskProfiles(ovcli *ovclient.Client) (*DiskProfileList, error) {
 	// call the server
 	body, err := ovcli.REST.Get(ovcli.AccessToken, path)
 	if err != nil {
-		err = fmt.Errorf("Error doing HTTP GET: %v", err)
+		err = fmt.Errorf("error doing HTTP GET: %v", err)
 		return nil, err
 	}
 
 	diskProfileList := &DiskProfileList{}
 	err = json.Unmarshal(body, diskProfileList)
 	if err != nil {
-		err = fmt.Errorf("Error unmarshaling StorageDomains: %v", err)
+		err = fmt.Errorf("error unmarshaling StorageDomains: %v", err)
 		log.Error(err)
 		return nil, err
 	}
@@ -33,10 +34,9 @@ func GetDiskProfiles(ovcli *ovclient.Client) (*DiskProfileList, error) {
 	return diskProfileList, nil
 }
 
-// GetDiskGetDiskProfilesByName gets a list disk profile by name
+// GetDiskProfilesByName gets a list disk profile by name
 func GetDiskProfilesByName(ovcli *ovclient.Client, profileName string) ([]*DiskProfile, error) {
-	matchList := []*DiskProfile{}
-
+	var matchList []*DiskProfile
 	profileList, err := GetDiskProfiles(ovcli)
 	if err != nil {
 		return nil, err
