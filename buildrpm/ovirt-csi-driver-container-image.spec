@@ -6,7 +6,7 @@
 
 %global app_name                ovirt-csi-driver
 %global app_version             4.20.0
-%global oracle_release_version  5
+%global oracle_release_version  6
 %global _buildhost              build-ol%{?oraclelinux}-%{?_arch}.oracle.com
 
 Name:           %{app_name}-container-image
@@ -43,6 +43,9 @@ podman save -o %{app_name}.tar %{docker_image}
 /usr/local/share/olcne/%{app_name}.tar
 
 %changelog
+* Thu Dec 11 2025 Michael Gianatassio <michael.gianatassio@oracle.com> - 4.20.0-6
+- Remove folder named "deploy" that contained obsolete helm templates.
+
 * Fri Oct 10 2025 Michael Gianatassio <michael.gianatassio@oracle.com> - 4.20.0-5
 - Update golang build flags and dependencies
 
