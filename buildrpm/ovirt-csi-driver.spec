@@ -6,7 +6,7 @@
 
 %global app_name                ovirt-csi-driver
 %global app_version             4.21.0
-%global oracle_release_version  3
+%global oracle_release_version  4
 %global _buildhost              build-ol%{?oraclelinux}-%{?_arch}.oracle.com
 
 Name:           %{app_name}
@@ -37,6 +37,9 @@ install -m 755 bin/%{app_name} %{buildroot}/%{app_name}
 /%{app_name}
 
 %changelog
+* Thu Dec 11 2025 Michael Gianatassio <michael.gianatassio@oracle.com> - 4.21.0-4
+- Remove folder named "deploy" that contained obsolete helm templates.
+
 * Thu Nov 6 2025 Michael Gianatassio <michael.gianatassio@oracle.com> - 4.21.0-3
 - Resolve issue of burst request to create PVCs getting allocated across available storage domains
 
