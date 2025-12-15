@@ -24,7 +24,7 @@ You need the following information:
 
 Test the connection from your k8s VM node(s)
 ```
-curl -k -u k8s@internal:mypassword [https://ovirtlab.example.com/ovirt-engine/api](https://hostname.domain/ovirt-engine/api)
+curl -k -u k8s@internal:mypassword [https://hostname.domain/ovirt-engine/api](https://hostname.domain/ovirt-engine/api)
 ```
 
 # Installation
@@ -146,7 +146,7 @@ ovirt-csi-node-plugin-746zx                    3/3     Running   0          128m
 
 ## Create StorageClass
 Create a storage domain (or use an existing one) in the oVirt/OLVM admin console.<br/>
-In this example, the storage domain is calles `k8s-data`. Modify the values of the StorageClass further to your preference.
+In this example, the storage domain is called `k8s-data`. Modify the values of the StorageClass further to your preference.
 ```
 cat <<EOF | tee ovirt-csi-storageclass.yaml
 apiVersion: storage.k8s.io/v1
