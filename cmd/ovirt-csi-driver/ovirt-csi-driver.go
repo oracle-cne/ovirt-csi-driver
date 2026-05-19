@@ -16,9 +16,11 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/klog"
+	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/manager/signals"
+	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 )
 
 var (
@@ -87,8 +89,14 @@ func handle() {
 	klog.Infof("Found %d nodes in cluster\n", len(nodeList.Items))
 
 	opts := manager.Options{
-		Namespace:          *namespace,
-		MetricsBindAddress: "0",
+		Metrics: metricsserver.Options{
+			BindAddress: "0",
+		},
+	}
+	if *namespace != "" {
+		opts.Cache.DefaultNamespaces = map[string]cache.Config{
+			*namespace: {},
+		}
 	}
 
 	// Create a new Cmd to provide shared dependencies and start components
