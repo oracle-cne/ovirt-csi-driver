@@ -43,7 +43,7 @@ podman save -o %{app_name}.tar %{docker_image}
 /usr/local/share/olcne/%{app_name}.tar
 
 %changelog
-* Tue May 19 2025 Daniel Krasinski <daniel.krasinski@oracle.com> - 4.21.1-1
+* Tue May 19 2026 Daniel Krasinski <daniel.krasinski@oracle.com> - 4.21.1-1
 - Bump dependencies
 
 * Thu Dec 11 2025 Michael Gianatassio <michael.gianatassio@oracle.com> - 4.21.0-4
