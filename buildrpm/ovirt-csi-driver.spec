@@ -19,6 +19,11 @@ Url:            https://github.com/oracle-cne/ovirt-csi-driver.git
 Source:         %{name}-%{version}.tar.bz2
 BuildRequires:  golang
 BuildRequires:	make
+Requires:       systemd-udev
+Requires:       e2fsprogs
+Requires:       xfsprogs
+Requires:       util-linux-core
+Requires:       util-linux
 
 %description
 CSI driver for oVirt
