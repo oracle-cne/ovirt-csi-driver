@@ -5,8 +5,8 @@
 %endif
 
 %global app_name                ovirt-csi-driver
-%global app_version             4.21.0
-%global oracle_release_version  4
+%global app_version             4.21.1
+%global oracle_release_version  1
 %global _buildhost              build-ol%{?oraclelinux}-%{?_arch}.oracle.com
 
 Name:           %{app_name}
@@ -19,6 +19,11 @@ Url:            https://github.com/oracle-cne/ovirt-csi-driver.git
 Source:         %{name}-%{version}.tar.bz2
 BuildRequires:  golang
 BuildRequires:	make
+Requires:       systemd-udev
+Requires:       e2fsprogs
+Requires:       xfsprogs
+Requires:       util-linux-core
+Requires:       util-linux
 
 %description
 CSI driver for oVirt
@@ -37,6 +42,9 @@ install -m 755 bin/%{app_name} %{buildroot}/%{app_name}
 /%{app_name}
 
 %changelog
+* Tue May 19 2026 Daniel Krasinski <daniel.krasinski@oracle.com> - 4.21.1-1
+- Bump dependencies
+
 * Thu Dec 11 2025 Michael Gianatassio <michael.gianatassio@oracle.com> - 4.21.0-4
 - Remove folder named "deploy" that contained obsolete helm templates.
 
