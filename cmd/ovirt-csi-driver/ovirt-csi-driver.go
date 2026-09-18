@@ -9,8 +9,6 @@ import (
 	"time"
 
 	"github.com/ovirt/csi-driver/internal/ovirt"
-	ovconfig "github.com/ovirt/csi-driver/pkg/config"
-	"github.com/ovirt/csi-driver/pkg/ovirt/ovclient"
 	"github.com/ovirt/csi-driver/pkg/service"
 	ovirtclient "github.com/ovirt/go-ovirt-client/v2"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -41,16 +39,6 @@ func main() {
 
 func handle() {
 
-	// Validate server connection
-	c, err := ovconfig.GetOvirtConfig()
-	if err != nil {
-		klog.Fatal(fmt.Errorf("failed to get ovirt config: %v", err))
-	}
-	ovclient.GetOVClient(c)
-	if err != nil {
-		klog.Fatal(fmt.Errorf("error creating ovclient: %v", err))
-	}
-
 	if service.VendorVersion == "" {
 		klog.Fatalf("VendorVersion must be set at compile time")
 	}
@@ -58,9 +46,10 @@ func handle() {
 
 	ovirtClient, err := ovirt.NewClient()
 	if err != nil {
-		klog.Fatalf("Failed to initialize ovirt client %s", err)
+		klog.Errorf("Failed to initialize ovirt client: %v", err)
+	} else {
+		klog.Infof("Success verifying connection to ovirt server")
 	}
-	klog.Infof("Success verifying connection to ovirt server")
 
 	klog.Infof("Calling config.GetConfig()\n")
 
