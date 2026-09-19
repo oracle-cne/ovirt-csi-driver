@@ -6,7 +6,7 @@
 
 %global app_name                ovirt-csi-driver
 %global app_version             4.21.0
-%global oracle_release_version  4
+%global oracle_release_version  5
 %global _buildhost              build-ol%{?oraclelinux}-%{?_arch}.oracle.com
 
 Name:           %{app_name}-container-image
@@ -43,6 +43,9 @@ podman save -o %{app_name}.tar %{docker_image}
 /usr/local/share/olcne/%{app_name}.tar
 
 %changelog
+* Sat Sep 19 2026 Oracle Cloud Native Environment Authors <noreply@oracle.com> - 4.21.0-5
+- Add an HTTP liveness endpoint for Kubernetes pod health checks.
+
 * Thu Dec 11 2025 Michael Gianatassio <michael.gianatassio@oracle.com> - 4.21.0-4
 - Remove folder named "deploy" that contained obsolete helm templates.
 
