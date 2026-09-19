@@ -17,6 +17,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/klog"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
+	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/manager/signals"
 )
@@ -25,6 +26,11 @@ var (
 	endpoint  = flag.String("endpoint", "unix:/csi/csi.sock", "CSI endpoint")
 	namespace = flag.String("namespace", "", "Namespace to run the controllers on")
 	nodeName  = flag.String("node-name", "", "The node name - the node this pods runs on")
+)
+
+const (
+	healthProbeBindAddress = ":9808"
+	livenessEndpointName   = "/livez"
 )
 
 func init() {
@@ -87,13 +93,18 @@ func handle() {
 	klog.Infof("Found %d nodes in cluster\n", len(nodeList.Items))
 
 	opts := manager.Options{
-		Namespace:          *namespace,
-		MetricsBindAddress: "0",
+		Namespace:              *namespace,
+		MetricsBindAddress:     "0",
+		HealthProbeBindAddress: healthProbeBindAddress,
+		LivenessEndpointName:   livenessEndpointName,
 	}
 
 	// Create a new Cmd to provide shared dependencies and start components
 	mgr, err := manager.New(restConfig, opts)
 	if err != nil {
+		klog.Fatal(err)
+	}
+	if err := mgr.AddHealthzCheck("ping", healthz.Ping); err != nil {
 		klog.Fatal(err)
 	}
 	go func() {
