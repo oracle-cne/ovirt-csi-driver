@@ -18,7 +18,9 @@ package exec
 
 import (
 	"context"
+	"errors"
 	"io"
+	"io/fs"
 	osexec "os/exec"
 	"syscall"
 	"time"
@@ -96,19 +98,35 @@ func New() Interface {
 	return &executor{}
 }
 
+// maskErrDotCmd reverts the behavior of osexec.Cmd to what it was before go1.19
+// specifically set the Err field to nil (LookPath returns a new error when the file
+// is resolved to the current directory.
+func maskErrDotCmd(cmd *osexec.Cmd) *osexec.Cmd {
+	cmd.Err = maskErrDot(cmd.Err)
+	return cmd
+}
+
+func maskErrDot(err error) error {
+	if err != nil && errors.Is(err, osexec.ErrDot) {
+		return nil
+	}
+	return err
+}
+
 // Command is part of the Interface interface.
 func (executor *executor) Command(cmd string, args ...string) Cmd {
-	return (*cmdWrapper)(osexec.Command(cmd, args...))
+	return (*cmdWrapper)(maskErrDotCmd(osexec.Command(cmd, args...)))
 }
 
 // CommandContext is part of the Interface interface.
 func (executor *executor) CommandContext(ctx context.Context, cmd string, args ...string) Cmd {
-	return (*cmdWrapper)(osexec.CommandContext(ctx, cmd, args...))
+	return (*cmdWrapper)(maskErrDotCmd(osexec.CommandContext(ctx, cmd, args...)))
 }
 
 // LookPath is part of the Interface interface
 func (executor *executor) LookPath(file string) (string, error) {
-	return osexec.LookPath(file)
+	path, err := osexec.LookPath(file)
+	return path, handleError(maskErrDot(err))
 }
 
 // Wraps exec.Cmd so we can capture errors.
@@ -198,6 +216,8 @@ func handleError(err error) error {
 	switch e := err.(type) {
 	case *osexec.ExitError:
 		return &ExitErrorWrapper{e}
+	case *fs.PathError:
+		return ErrExecutableNotFound
 	case *osexec.Error:
 		if e.Err == osexec.ErrNotFound {
 			return ErrExecutableNotFound

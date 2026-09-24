@@ -12,6 +12,22 @@ import (
 
 const defaultOvirtConfigEnvVar = "OVIRT_CONFIG"
 
+const (
+	ovirtURLEnvVar      = "OVIRT_URL"
+	ovirtUsernameEnvVar = "OVIRT_USERNAME"
+	ovirtPasswordEnvVar = "OVIRT_PASSWORD"
+	ovirtCAFileEnvVar   = "OVIRT_CAFILE"
+	ovirtCABundleEnvVar = "OVIRT_CA_BUNDLE"
+)
+
+// PrepareOvirtConfigOptions controls the config file generated from environment variables.
+type PrepareOvirtConfigOptions struct {
+	ConfigPath string
+	CAFilePath string
+	Insecure   bool
+	Logf       func(format string, args ...interface{})
+}
+
 // singleton config
 var ovconfig *Config
 
@@ -82,6 +98,120 @@ func discoverConfigFilePath() string {
 	}
 
 	return filepath.Join(os.Getenv("HOME"), ".ovirt", "ovirt-config.yaml")
+}
+
+// PrepareOvirtConfigFromEnv writes an oVirt config file from environment variables.
+func PrepareOvirtConfigFromEnv(options PrepareOvirtConfigOptions) error {
+	logf := options.Logf
+	if logf == nil {
+		logf = func(string, ...interface{}) {}
+	}
+
+	logf("Starting oVirt config preparation from environment variables")
+	configPath := options.ConfigPath
+	if configPath == "" {
+		logf("No explicit config path provided; discovering path from %s or HOME", defaultOvirtConfigEnvVar)
+		configPath = discoverConfigFilePath()
+	}
+	if configPath == "" {
+		return fmt.Errorf("ovirt config path is empty")
+	}
+	logf("Resolved oVirt config output path: %s", configPath)
+
+	url, err := requiredEnv(ovirtURLEnvVar, logf)
+	if err != nil {
+		return err
+	}
+	username, err := requiredEnv(ovirtUsernameEnvVar, logf)
+	if err != nil {
+		return err
+	}
+	password, err := requiredEnv(ovirtPasswordEnvVar, logf)
+	if err != nil {
+		return err
+	}
+
+	caBundle, caBundleProvided := os.LookupEnv(ovirtCABundleEnvVar)
+	if caBundleProvided && caBundle != "" {
+		logf("Detected non-empty %s; CA bundle file will be written", ovirtCABundleEnvVar)
+	} else {
+		logf("No non-empty %s detected; CA bundle file will not be written", ovirtCABundleEnvVar)
+	}
+
+	caFilePath := ""
+	if caBundle != "" {
+		caFilePath = options.CAFilePath
+		if caFilePath == "" {
+			logf("No explicit CA file path provided; checking %s", ovirtCAFileEnvVar)
+			caFilePath, _ = os.LookupEnv(ovirtCAFileEnvVar)
+		}
+		if caFilePath == "" {
+			return fmt.Errorf("%s must be set when %s is set", ovirtCAFileEnvVar, ovirtCABundleEnvVar)
+		}
+		logf("Resolved oVirt CA bundle output path: %s", caFilePath)
+	}
+
+	preparedConfig := Config{
+		URL:      url,
+		Username: username,
+		Password: password,
+		CAFile:   caFilePath,
+		Insecure: options.Insecure,
+	}
+
+	logf("Serializing oVirt config content")
+	out, err := yaml.Marshal(preparedConfigFile{
+		URL:      preparedConfig.URL,
+		Username: preparedConfig.Username,
+		Password: preparedConfig.Password,
+		CAFile:   preparedConfig.CAFile,
+		Insecure: preparedConfig.Insecure,
+	})
+	if err != nil {
+		return fmt.Errorf("error serializing ovirt config: %v", err)
+	}
+
+	logf("Ensuring oVirt config directory exists: %s", filepath.Dir(configPath))
+	if err := os.MkdirAll(filepath.Dir(configPath), os.FileMode(0700)); err != nil {
+		return fmt.Errorf("error creating ovirt config directory: %v", err)
+	}
+
+	logf("Writing oVirt config file: %s", configPath)
+	if err := ioutil.WriteFile(configPath, out, os.FileMode(0600)); err != nil {
+		return fmt.Errorf("error writing ovirt config file: %v", err)
+	}
+
+	if caBundle != "" {
+		logf("Ensuring oVirt CA bundle directory exists: %s", filepath.Dir(caFilePath))
+		if err := os.MkdirAll(filepath.Dir(caFilePath), os.FileMode(0700)); err != nil {
+			return fmt.Errorf("error creating ovirt CA bundle directory: %v", err)
+		}
+		logf("Writing oVirt CA bundle file: %s", caFilePath)
+		if err := ioutil.WriteFile(caFilePath, []byte(caBundle), os.FileMode(0600)); err != nil {
+			return fmt.Errorf("error writing ovirt CA bundle file: %v", err)
+		}
+	}
+
+	logf("Finished oVirt config preparation")
+	return nil
+}
+
+type preparedConfigFile struct {
+	URL      string `yaml:"ovirt_url"`
+	Username string `yaml:"ovirt_username"`
+	Password string `yaml:"ovirt_password"`
+	CAFile   string `yaml:"ovirt_cafile"`
+	Insecure bool   `yaml:"ovirt_insecure"`
+}
+
+func requiredEnv(name string, logf func(format string, args ...interface{})) (string, error) {
+	logf("Reading required environment variable: %s", name)
+	value, ok := os.LookupEnv(name)
+	if !ok || value == "" {
+		return "", fmt.Errorf("%s must be set", name)
+	}
+	logf("Found required environment variable: %s", name)
+	return value, nil
 }
 
 // Save will serialize the config back into the locations

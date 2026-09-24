@@ -77,7 +77,7 @@ type Interface interface {
 var _ Interface = &Mounter{}
 
 // MountPoint represents a single line in /proc/mounts or /etc/fstab.
-type MountPoint struct { // nolint: golint
+type MountPoint struct { // nolint: revive
 	Device string
 	Path   string
 	Type   string
@@ -86,7 +86,7 @@ type MountPoint struct { // nolint: golint
 	Pass   int
 }
 
-type MountErrorType string // nolint: golint
+type MountErrorType string // nolint: revive
 
 const (
 	FilesystemMismatch  MountErrorType = "FilesystemMismatch"
@@ -97,7 +97,7 @@ const (
 	UnknownMountError   MountErrorType = "UnknownMountError"
 )
 
-type MountError struct { // nolint: golint
+type MountError struct { // nolint: revive
 	Type    MountErrorType
 	Message string
 }
@@ -257,7 +257,8 @@ func IsNotMountPoint(mounter Interface, file string) (bool, error) {
 // MakeBindOpts detects whether a bind mount is being requested and makes the remount options to
 // use in case of bind mount, due to the fact that bind mount doesn't respect mount options.
 // The list equals:
-//   options - 'bind' + 'remount' (no duplicate)
+//
+//	options - 'bind' + 'remount' (no duplicate)
 func MakeBindOpts(options []string) (bool, []string, []string) {
 	bind, bindOpts, bindRemountOpts, _ := MakeBindOptsSensitive(options, nil /* sensitiveOptions */)
 	return bind, bindOpts, bindRemountOpts
@@ -290,9 +291,7 @@ func MakeBindOptsSensitive(options []string, sensitiveOptions []string) (bool, [
 		switch option {
 		case "bind":
 			bind = true
-			break
-		case "remount":
-			break
+		case "remount": // Do nothing.
 		default:
 			bindRemountOpts = append(bindRemountOpts, option)
 		}
@@ -302,9 +301,7 @@ func MakeBindOptsSensitive(options []string, sensitiveOptions []string) (bool, [
 		switch sensitiveOption {
 		case "bind":
 			bind = true
-			break
-		case "remount":
-			break
+		case "remount": // Do nothing.
 		default:
 			bindRemountSensitiveOpts = append(bindRemountSensitiveOpts, sensitiveOption)
 		}
