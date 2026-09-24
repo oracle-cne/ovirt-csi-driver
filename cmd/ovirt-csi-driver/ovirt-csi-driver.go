@@ -109,7 +109,6 @@ func handle() {
 	klog.Infof("Found %d nodes in cluster\n", len(nodeList.Items))
 
 	opts := manager.Options{
-		MetricsBindAddress:     "0",
 		HealthProbeBindAddress: healthProbeBindAddress,
 		LivenessEndpointName:   livenessEndpointName,
 		Metrics: metricsserver.Options{
