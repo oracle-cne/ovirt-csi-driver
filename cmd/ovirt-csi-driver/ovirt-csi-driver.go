@@ -9,15 +9,16 @@ import (
 
 	"github.com/ovirt/csi-driver/internal/ovirt"
 	ovconfig "github.com/ovirt/csi-driver/pkg/config"
-	"github.com/ovirt/csi-driver/pkg/ovirt/ovclient"
 	"github.com/ovirt/csi-driver/pkg/service"
 	ovirtclient "github.com/ovirt/go-ovirt-client/v2"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/klog"
+	klogv2 "k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
+	crlog "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/manager/signals"
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
@@ -47,6 +48,7 @@ func main() {
 	flag.Set("logtostderr", "true")
 	flag.Parse()
 	defer klog.Flush()
+	crlog.SetLogger(klogv2.NewKlogr())
 	rand.Seed(time.Now().UnixNano())
 	if *prepareOvirtConfig {
 		if err := ovconfig.PrepareOvirtConfigFromEnv(ovconfig.PrepareOvirtConfigOptions{
@@ -64,16 +66,6 @@ func main() {
 
 func handle() {
 
-	// Validate server connection
-	c, err := ovconfig.GetOvirtConfig()
-	if err != nil {
-		klog.Fatal(fmt.Errorf("failed to get ovirt config: %v", err))
-	}
-	ovclient.GetOVClient(c)
-	if err != nil {
-		klog.Fatal(fmt.Errorf("error creating ovclient: %v", err))
-	}
-
 	if service.VendorVersion == "" {
 		klog.Fatalf("VendorVersion must be set at compile time")
 	}
@@ -81,9 +73,9 @@ func handle() {
 
 	ovirtClient, err := ovirt.NewClient()
 	if err != nil {
-		klog.Fatalf("Failed to initialize ovirt client %s", err)
+		klog.Fatalf("Failed to initialize ovirt client: %v", err)
 	}
-	klog.Infof("Success verifying connection to ovirt server")
+	klog.Infof("Initialized oVirt client; connection state will be reported by the CSI Probe service")
 
 	klog.Infof("Calling config.GetConfig()\n")
 
