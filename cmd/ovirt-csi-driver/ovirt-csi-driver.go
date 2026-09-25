@@ -14,9 +14,11 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/klog"
+	klogv2 "k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
+	crlog "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/manager/signals"
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
@@ -46,6 +48,7 @@ func main() {
 	flag.Set("logtostderr", "true")
 	flag.Parse()
 	defer klog.Flush()
+	crlog.SetLogger(klogv2.NewKlogr())
 	rand.Seed(time.Now().UnixNano())
 	if *prepareOvirtConfig {
 		if err := ovconfig.PrepareOvirtConfigFromEnv(ovconfig.PrepareOvirtConfigOptions{
@@ -70,10 +73,9 @@ func handle() {
 
 	ovirtClient, err := ovirt.NewClient()
 	if err != nil {
-		klog.Errorf("Failed to initialize ovirt client: %v", err)
-	} else {
-		klog.Infof("Success verifying connection to ovirt server")
+		klog.Fatalf("Failed to initialize ovirt client: %v", err)
 	}
+	klog.Infof("Initialized oVirt client; connection state will be reported by the CSI Probe service")
 
 	klog.Infof("Calling config.GetConfig()\n")
 
