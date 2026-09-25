@@ -42,6 +42,9 @@ install -m 755 bin/%{app_name} %{buildroot}/%{app_name}
 /%{app_name}
 
 %changelog
+* Sat Sep 19 2026 Oracle Cloud Native Environment Authors <noreply@oracle.com> - 4.21.1-2
+- Add an HTTP liveness endpoint for Kubernetes pod health checks.
+
 * Tue May 19 2026 Daniel Krasinski <daniel.krasinski@oracle.com> - 4.21.1-1
 - Bump dependencies
 

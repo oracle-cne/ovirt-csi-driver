@@ -43,6 +43,9 @@ podman save -o %{app_name}.tar %{docker_image}
 /usr/local/share/olcne/%{app_name}.tar
 
 %changelog
+* Sat Sep 19 2026 Oracle Cloud Native Environment Authors <noreply@oracle.com> - 4.21.1-2
+- Add an HTTP liveness endpoint for Kubernetes pod health checks.
+
 * Tue May 19 2026 Daniel Krasinski <daniel.krasinski@oracle.com> - 4.21.1-1
 - Bump dependencies
 
