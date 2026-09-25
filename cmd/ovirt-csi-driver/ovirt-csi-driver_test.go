@@ -10,8 +10,14 @@ import (
 )
 
 func TestLivenessProbeConfiguration(t *testing.T) {
-	if healthProbeBindAddress != ":9808" {
-		t.Fatalf("health probe bind address is %q, want %q", healthProbeBindAddress, ":9808")
+	if *livenessPort != defaultLivenessPort {
+		t.Fatalf("liveness port is %d, want %d", *livenessPort, defaultLivenessPort)
+	}
+	if address := livenessBindAddress(defaultLivenessPort); address != ":9808" {
+		t.Fatalf("default liveness bind address is %q, want %q", address, ":9808")
+	}
+	if address := livenessBindAddress(12345); address != ":12345" {
+		t.Fatalf("configured liveness bind address is %q, want %q", address, ":12345")
 	}
 	if livenessEndpointName != "/livez" {
 		t.Fatalf("liveness endpoint name is %q, want %q", livenessEndpointName, "/livez")
