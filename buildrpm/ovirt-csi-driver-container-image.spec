@@ -6,7 +6,7 @@
 
 %global app_name                ovirt-csi-driver
 %global app_version             4.21.1
-%global oracle_release_version  1
+%global oracle_release_version  3
 %global _buildhost              build-ol%{?oraclelinux}-%{?_arch}.oracle.com
 
 Name:           %{app_name}-container-image
@@ -30,7 +30,7 @@ CSI driver for oVirt
 
 yum clean all
 yumdownloader --destdir=${PWD}/rpms %{rpm_name}
-podman build --pull \
+podman build --pull --from container-registry.oracle.com/os/oraclelinux:9-slim \
     --build-arg https_proxy=${https_proxy} \
     -t %{docker_image} -f ./olm/builds/Dockerfile .
 podman save -o %{app_name}.tar %{docker_image}
@@ -43,6 +43,9 @@ podman save -o %{app_name}.tar %{docker_image}
 /usr/local/share/olcne/%{app_name}.tar
 
 %changelog
+* Fri Sep 25 2026 Oracle Cloud Native Environment Authors <noreply@oracle.com> - 4.21.1-3
+- Refresh the driver image on an Oracle Linux 9 base with rebuilt dependencies.
+
 * Sat Sep 19 2026 Oracle Cloud Native Environment Authors <noreply@oracle.com> - 4.21.1-2
 - Add an HTTP liveness endpoint for Kubernetes pod health checks.
 
