@@ -20,7 +20,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"net"
 	"net/http"
 	"net/url"
@@ -33,6 +32,9 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/runtime/serializer"
+	"k8s.io/apimachinery/pkg/runtime/serializer/cbor"
+	"k8s.io/client-go/features"
 	"k8s.io/client-go/pkg/version"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 	"k8s.io/client-go/transport"
@@ -114,6 +116,9 @@ type Config struct {
 
 	// QPS indicates the maximum QPS to the master from this client.
 	// If it's zero, the created RESTClient will use DefaultQPS: 5
+	//
+	// Setting this to a negative value will disable client-side ratelimiting
+	// unless `Ratelimiter` is also set.
 	QPS float32
 
 	// Maximum burst for throttle.
@@ -202,6 +207,8 @@ func (c *Config) String() string {
 type ImpersonationConfig struct {
 	// UserName is the username to impersonate on each request.
 	UserName string
+	// UID is a unique value that identifies the user.
+	UID string
 	// Groups are the groups to impersonate on each request.
 	Groups []string
 	// Extra is a free-form field which can be used to link some authentication information
@@ -303,6 +310,8 @@ type ContentConfig struct {
 // object. Note that a RESTClient may require fields that are optional when initializing a Client.
 // A RESTClient created by this method is generic - it expects to operate on an API that follows
 // the Kubernetes conventions, but may not be the Kubernetes API.
+// RESTClientFor is equivalent to calling RESTClientForConfigAndClient(config, httpClient),
+// where httpClient was generated with HTTPClientFor(config).
 func RESTClientFor(config *Config) (*RESTClient, error) {
 	if config.GroupVersion == nil {
 		return nil, fmt.Errorf("GroupVersion is required when initializing a RESTClient")
@@ -311,22 +320,38 @@ func RESTClientFor(config *Config) (*RESTClient, error) {
 		return nil, fmt.Errorf("NegotiatedSerializer is required when initializing a RESTClient")
 	}
 
-	baseURL, versionedAPIPath, err := defaultServerUrlFor(config)
+	// Validate config.Host before constructing the transport/client so we can fail fast.
+	// ServerURL will be obtained later in RESTClientForConfigAndClient()
+	_, _, err := DefaultServerUrlFor(config)
 	if err != nil {
 		return nil, err
 	}
 
-	transport, err := TransportFor(config)
+	httpClient, err := HTTPClientFor(config)
 	if err != nil {
 		return nil, err
 	}
 
-	var httpClient *http.Client
-	if transport != http.DefaultTransport {
-		httpClient = &http.Client{Transport: transport}
-		if config.Timeout > 0 {
-			httpClient.Timeout = config.Timeout
-		}
+	return RESTClientForConfigAndClient(config, httpClient)
+}
+
+// RESTClientForConfigAndClient returns a RESTClient that satisfies the requested attributes on a
+// client Config object.
+// Unlike RESTClientFor, RESTClientForConfigAndClient allows to pass an http.Client that is shared
+// between all the API Groups and Versions.
+// Note that the http client takes precedence over the transport values configured.
+// The http client defaults to the `http.DefaultClient` if nil.
+func RESTClientForConfigAndClient(config *Config, httpClient *http.Client) (*RESTClient, error) {
+	if config.GroupVersion == nil {
+		return nil, fmt.Errorf("GroupVersion is required when initializing a RESTClient")
+	}
+	if config.NegotiatedSerializer == nil {
+		return nil, fmt.Errorf("NegotiatedSerializer is required when initializing a RESTClient")
+	}
+
+	baseURL, versionedAPIPath, err := DefaultServerUrlFor(config)
+	if err != nil {
+		return nil, err
 	}
 
 	rateLimiter := config.RateLimiter
@@ -369,22 +394,31 @@ func UnversionedRESTClientFor(config *Config) (*RESTClient, error) {
 		return nil, fmt.Errorf("NegotiatedSerializer is required when initializing a RESTClient")
 	}
 
-	baseURL, versionedAPIPath, err := defaultServerUrlFor(config)
+	// Validate config.Host before constructing the transport/client so we can fail fast.
+	// ServerURL will be obtained later in UnversionedRESTClientForConfigAndClient()
+	_, _, err := DefaultServerUrlFor(config)
 	if err != nil {
 		return nil, err
 	}
 
-	transport, err := TransportFor(config)
+	httpClient, err := HTTPClientFor(config)
 	if err != nil {
 		return nil, err
 	}
 
-	var httpClient *http.Client
-	if transport != http.DefaultTransport {
-		httpClient = &http.Client{Transport: transport}
-		if config.Timeout > 0 {
-			httpClient.Timeout = config.Timeout
-		}
+	return UnversionedRESTClientForConfigAndClient(config, httpClient)
+}
+
+// UnversionedRESTClientForConfigAndClient is the same as RESTClientForConfigAndClient,
+// except that it allows the config.Version to be empty.
+func UnversionedRESTClientForConfigAndClient(config *Config, httpClient *http.Client) (*RESTClient, error) {
+	if config.NegotiatedSerializer == nil {
+		return nil, fmt.Errorf("NegotiatedSerializer is required when initializing a RESTClient")
+	}
+
+	baseURL, versionedAPIPath, err := DefaultServerUrlFor(config)
+	if err != nil {
+		return nil, err
 	}
 
 	rateLimiter := config.RateLimiter
@@ -490,7 +524,7 @@ func InClusterConfig() (*Config, error) {
 		return nil, ErrNotInCluster
 	}
 
-	token, err := ioutil.ReadFile(tokenFile)
+	token, err := os.ReadFile(tokenFile)
 	if err != nil {
 		return nil, err
 	}
@@ -520,7 +554,7 @@ func InClusterConfig() (*Config, error) {
 // Note: the Insecure flag is ignored when testing for this value, so MITM attacks are
 // still possible.
 func IsConfigTransportTLS(config Config) bool {
-	baseURL, _, err := defaultServerUrlFor(&config)
+	baseURL, _, err := DefaultServerUrlFor(&config)
 	if err != nil {
 		return false
 	}
@@ -543,10 +577,7 @@ func LoadTLSFiles(c *Config) error {
 	}
 
 	c.KeyData, err = dataFromSliceOrFile(c.KeyData, c.KeyFile)
-	if err != nil {
-		return err
-	}
-	return nil
+	return err
 }
 
 // dataFromSliceOrFile returns data from the slice (if non-empty), or from the file,
@@ -556,7 +587,7 @@ func dataFromSliceOrFile(data []byte, file string) ([]byte, error) {
 		return data, nil
 	}
 	if len(file) > 0 {
-		fileData, err := ioutil.ReadFile(file)
+		fileData, err := os.ReadFile(file)
 		if err != nil {
 			return []byte{}, err
 		}
@@ -608,9 +639,10 @@ func CopyConfig(config *Config) *Config {
 		BearerToken:     config.BearerToken,
 		BearerTokenFile: config.BearerTokenFile,
 		Impersonate: ImpersonationConfig{
+			UserName: config.Impersonate.UserName,
+			UID:      config.Impersonate.UID,
 			Groups:   config.Impersonate.Groups,
 			Extra:    config.Impersonate.Extra,
-			UserName: config.Impersonate.UserName,
 		},
 		AuthProvider:        config.AuthProvider,
 		AuthConfigPersister: config.AuthConfigPersister,
@@ -642,4 +674,20 @@ func CopyConfig(config *Config) *Config {
 		c.ExecProvider.Config = config.ExecProvider.Config.DeepCopyObject()
 	}
 	return c
+}
+
+// CodecFactoryForGeneratedClient returns the provided CodecFactory if there are no enabled client
+// feature gates affecting serialization. Otherwise, it constructs and returns a new CodecFactory
+// from the provided Scheme.
+//
+// This is supported ONLY for use by clients generated with client-gen. The caller is responsible
+// for ensuring that the CodecFactory argument was constructed using the Scheme argument.
+func CodecFactoryForGeneratedClient(scheme *runtime.Scheme, codecs serializer.CodecFactory) serializer.CodecFactory {
+	if !features.FeatureGates().Enabled(features.ClientsAllowCBOR) {
+		// NOTE: This assumes client-gen will not generate CBOR-enabled Codecs as long as
+		// the feature gate exists.
+		return codecs
+	}
+
+	return serializer.NewCodecFactory(scheme, serializer.WithSerializer(cbor.NewSerializerInfo))
 }
