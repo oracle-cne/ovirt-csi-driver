@@ -25,15 +25,7 @@ CSI driver for oVirt
 %setup -q
 
 %build
-%global rpm_name %{app_name}-%{version}-%{release}.%{_build_arch}
-%global docker_image container-registry.oracle.com/olcne/%{app_name}:v%{version}
-
-yum clean all
-yumdownloader --destdir=${PWD}/rpms %{rpm_name}
-podman build --pull --from container-registry.oracle.com/os/oraclelinux:9-slim \
-    --build-arg https_proxy=${https_proxy} \
-    -t %{docker_image} -f ./olm/builds/Dockerfile .
-podman save -o %{app_name}.tar %{docker_image}
+OVIRT_CSI_DRIVER_VERSION=%{app_version} bash olm/build-image.sh
 
 %install
 %__install -D -m 644 %{app_name}.tar %{buildroot}/usr/local/share/olcne/%{app_name}.tar
