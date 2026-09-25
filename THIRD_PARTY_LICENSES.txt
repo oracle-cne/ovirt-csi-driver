@@ -724,6 +724,7 @@ Copyright 2021 The Go Authors. All rights reserved.
 Copyright 2023 The Go Authors. All rights reserved.
 Copyright 2024 The Go Authors. All rights reserved.
 Copyright 2025 The Go Authors. All rights reserved.
+Copyright 2026 The Go Authors. All rights reserved.
 
 == Patents
 Additional IP Rights Grant (Patents)
@@ -850,6 +851,7 @@ Copyright 2022 The Go Authors. All rights reserved.
 Copyright 2023 The Go Authors. All rights reserved.
 Copyright 2024 The Go Authors. All rights reserved.
 Copyright 2025 The Go Authors. All rights reserved.
+Copyright 2026 The Go Authors. All rights reserved.
 
 == Patents
 Additional IP Rights Grant (Patents)
@@ -1116,7 +1118,7 @@ google.golang.org/genproto/googleapis/rpc
 SPDX:Apache-2.0
 
 == Copyright
-Copyright 2025 Google LLC
+Copyright 2026 Google LLC
 
 --------------------------------- (separator) ----------------------------------
 
@@ -1140,6 +1142,7 @@ Copyright 2022 gRPC authors.
 Copyright 2023 gRPC authors.
 Copyright 2024 gRPC authors.
 Copyright 2025 gRPC authors.
+Copyright 2026 gRPC authors.
 
 == Notices
 Copyright 2014 gRPC authors.
