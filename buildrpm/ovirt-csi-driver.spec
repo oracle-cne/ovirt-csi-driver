@@ -5,8 +5,8 @@
 %endif
 
 %global app_name                ovirt-csi-driver
-%global app_version             4.21.1
-%global oracle_release_version  3
+%global app_version             4.21.2
+%global oracle_release_version  1
 %global _buildhost              build-ol%{?oraclelinux}-%{?_arch}.oracle.com
 
 Name:           %{app_name}
@@ -51,6 +51,9 @@ install -m 755 bin/%{app_name} %{buildroot}/%{app_name}
 /%{app_name}
 
 %changelog
+* Sat Sep 26 2026 Daniel Krasinski <daniel.krasinski@oracle.com> - 4.21.2-1
+- Improve dependency declaration and image building
+
 * Fri Sep 25 2026 Oracle Cloud Native Environment Authors <noreply@oracle.com> - 4.21.1-3
 - Refresh vulnerable Go dependencies and rebuild with a current Go toolchain.
 
