@@ -51,6 +51,18 @@ type Client struct {
 
 // GetOVClient gets an ovClient
 func GetOVClient(config *config.Config) (*Client, error) {
+	return getOVClient(config, true)
+}
+
+// ValidateConnection authenticates to the oVirt API without logging client
+// errors. Callers that validate Secret-backed configuration must handle errors
+// without exposing endpoint or server details in container logs.
+func ValidateConnection(config *config.Config) error {
+	_, err := getOVClient(config, false)
+	return err
+}
+
+func getOVClient(config *config.Config, logErrors bool) (*Client, error) {
 	// validate the secret that has the oVirt REST creds
 	creds, err := getCredentials(config)
 	if err != nil {
@@ -58,16 +70,20 @@ func GetOVClient(config *config.Config) (*Client, error) {
 	}
 
 	if !config.Insecure {
-		caData, err := ioutil.ReadFile(config.CAFile)
-		if err != nil {
-			return nil, fmt.Errorf("failed to read CA file: %s", err.Error())
+		caData := config.CABundle
+		if caData == "" {
+			caDataBytes, err := ioutil.ReadFile(config.CAFile)
+			if err != nil {
+				return nil, fmt.Errorf("failed to read CA file: %s", err.Error())
+			}
+			caData = string(caDataBytes)
 		}
-		caString := strings.TrimSpace(string(caData))
+		caString := strings.TrimSpace(caData)
 		creds.CA = map[string]string{"ca.crt": caString}
 	}
 
 	// Get an oVirt client
-	ovcli, err := ensureOvClient(creds, config.URL, config.Insecure)
+	ovcli, err := ensureOvClient(creds, config.URL, config.Insecure, logErrors)
 	if err != nil {
 		return nil, err
 	}
@@ -76,7 +92,7 @@ func GetOVClient(config *config.Config) (*Client, error) {
 }
 
 // ensureOvClient ensures that we have an access token that can be used with the oVirt REST API.
-func ensureOvClient(creds *Credentials, apiServerURL string, insecureSkipTLSVerify bool) (*Client, error) {
+func ensureOvClient(creds *Credentials, apiServerURL string, insecureSkipTLSVerify bool, logErrors bool) (*Client, error) {
 	// strip the /api if it exists since this code will append it
 	url := strings.TrimRight(apiServerURL, "/api")
 
@@ -98,12 +114,16 @@ func ensureOvClient(creds *Credentials, apiServerURL string, insecureSkipTLSVeri
 	body, err := ovcli.REST.Get(ovcli.AccessToken, path)
 	if err != nil {
 		err = fmt.Errorf("Error calling HTTP GET for URL %s: %v", ovcli.ApiServerURL, err)
-		log.Error(err)
+		if logErrors {
+			log.Error(err)
+		}
 		return nil, err
 	}
 	if len(body) == 0 {
 		err = fmt.Errorf("No system data found at %v", ovcli.ApiServerURL)
-		log.Error(err)
+		if logErrors {
+			log.Error(err)
+		}
 		return nil, err
 	}
 

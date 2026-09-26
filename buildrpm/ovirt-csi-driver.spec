@@ -6,7 +6,7 @@
 
 %global app_name                ovirt-csi-driver
 %global app_version             4.21.1
-%global oracle_release_version  1
+%global oracle_release_version  3
 %global _buildhost              build-ol%{?oraclelinux}-%{?_arch}.oracle.com
 
 Name:           %{app_name}
@@ -24,6 +24,11 @@ Requires:       e2fsprogs
 Requires:       xfsprogs
 Requires:       util-linux-core
 Requires:       util-linux
+Requires:       libblkid
+Requires:       libmount
+Requires:       libsmartcols
+Requires:       systemd-libs
+Requires:       libuuid
 
 %description
 CSI driver for oVirt
@@ -42,6 +47,9 @@ install -m 755 bin/%{app_name} %{buildroot}/%{app_name}
 /%{app_name}
 
 %changelog
+* Fri Sep 25 2026 Oracle Cloud Native Environment Authors <noreply@oracle.com> - 4.21.1-3
+- Refresh vulnerable Go dependencies and rebuild with a current Go toolchain.
+
 * Sat Sep 19 2026 Oracle Cloud Native Environment Authors <noreply@oracle.com> - 4.21.1-2
 - Add an HTTP liveness endpoint for Kubernetes pod health checks.
 

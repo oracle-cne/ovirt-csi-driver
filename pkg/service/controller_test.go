@@ -11,7 +11,7 @@ import (
 
 func TestVolumeCreation(t *testing.T) {
 	helper := getMockHelper(t)
-	controller := service.NewOvirtCSIDriver(helper.GetClient(), "test")
+	controller := service.NewOvirtCSIDriver(helper.GetClient(), "")
 
 	createVolumeResponse, err := createTestVolume(helper, controller)
 	if err != nil {
@@ -35,7 +35,7 @@ func TestVolumeCreation(t *testing.T) {
 
 func TestCreateRWXVolumeFails(t *testing.T) {
 	helper := getMockHelper(t)
-	controller := service.NewOvirtCSIDriver(helper.GetClient(), "test")
+	controller := service.NewOvirtCSIDriver(helper.GetClient(), "")
 	testStorageDomain, err := helper.GetClient().GetStorageDomain(helper.GetStorageDomainID())
 	if err != nil {
 		t.Fatalf("failed to get stoarge domain %s", helper.GetStorageDomainID())
@@ -68,7 +68,7 @@ func TestCreateRWXVolumeFails(t *testing.T) {
 
 func TestDeleteVolume(t *testing.T) {
 	helper := getMockHelper(t)
-	controller := service.NewOvirtCSIDriver(helper.GetClient(), "test")
+	controller := service.NewOvirtCSIDriver(helper.GetClient(), "")
 	createVolumeResponse, err := createTestVolume(helper, controller)
 	if err != nil {
 		t.Fatalf("failed to create test volume (%v)", err)
@@ -91,7 +91,7 @@ func TestDeleteVolume(t *testing.T) {
 
 func TestDeleteNonExistentVolume(t *testing.T) {
 	helper := getMockHelper(t)
-	controller := service.NewOvirtCSIDriver(helper.GetClient(), "test")
+	controller := service.NewOvirtCSIDriver(helper.GetClient(), "")
 
 	_, err := controller.DeleteVolume(context.Background(), &csi.DeleteVolumeRequest{
 		VolumeId: "doesn't exists",
@@ -197,7 +197,7 @@ func TestControllerUnpublishVolume(t *testing.T) {
 		t.Fatalf("failed to publish the volume (%v)", err)
 	}
 
-	controller := service.NewOvirtCSIDriver(helper.GetClient(), vmId)
+	controller := service.NewOvirtCSIDriver(helper.GetClient(), "")
 	_, err = controller.ControllerUnpublishVolume(context.Background(), &csi.ControllerUnpublishVolumeRequest{
 		VolumeId: string(diskId),
 		NodeId:   string(vmId),
@@ -239,7 +239,7 @@ func TestControllerUnpublishVolumeTwice(t *testing.T) {
 		t.Fatalf("failed to publish the volume (%v)", err)
 	}
 
-	controller := service.NewOvirtCSIDriver(helper.GetClient(), vmId)
+	controller := service.NewOvirtCSIDriver(helper.GetClient(), "")
 
 	// Unpublish volume.
 	_, err = controller.ControllerUnpublishVolume(context.Background(), &csi.ControllerUnpublishVolumeRequest{
@@ -278,8 +278,8 @@ func TestControllerExpandVolume(t *testing.T) {
 		},
 		Readonly: true,
 	}
-	nodeId, diskId, err := publishTestVolume(helper, publishRequest)
-	controller := service.NewOvirtCSIDriver(helper.GetClient(), nodeId)
+	_, diskId, err := publishTestVolume(helper, publishRequest)
+	controller := service.NewOvirtCSIDriver(helper.GetClient(), "")
 	disk, err := helper.GetClient().GetDisk(diskId)
 	if err != nil {
 		t.Fatalf("failed to get disks (%v)", err)
@@ -314,7 +314,7 @@ func TestControllerExpandVolume(t *testing.T) {
 
 func TestControllerExpandVolumeToSmallerSize(t *testing.T) {
 	helper := getMockHelper(t)
-	controller := service.NewOvirtCSIDriver(helper.GetClient(), "test")
+	controller := service.NewOvirtCSIDriver(helper.GetClient(), "")
 
 	createVolumeResponse, err := createTestVolume(helper, controller)
 	if err != nil {
@@ -342,7 +342,7 @@ func TestControllerExpandVolumeToSmallerSize(t *testing.T) {
 
 func TestControllerGetCapabilities(t *testing.T) {
 	helper := getMockHelper(t)
-	controller := service.NewOvirtCSIDriver(helper.GetClient(), "test")
+	controller := service.NewOvirtCSIDriver(helper.GetClient(), "")
 	capsResp, err := controller.ControllerGetCapabilities(context.Background(), &csi.ControllerGetCapabilitiesRequest{})
 	if err != nil {
 		t.Fatalf("failed to get controller capabilities (%v)", err)
@@ -395,7 +395,7 @@ func publishTestVolume(helper ovirtclient.TestHelper, publishReq *csi.Controller
 		}
 		publishReq.NodeId = string(vm.ID())
 	}
-	controller := service.NewOvirtCSIDriver(helper.GetClient(), ovirtclient.VMID(publishReq.NodeId))
+	controller := service.NewOvirtCSIDriver(helper.GetClient(), "")
 	if publishReq.VolumeId == "" {
 		createVolumeResponse, err := createTestVolume(helper, controller)
 		if err != nil {
