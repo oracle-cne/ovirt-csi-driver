@@ -47,6 +47,10 @@ func (i *IdentityService) GetPluginCapabilities(context.Context, *csi.GetPluginC
 
 // Probe checks the state of the connection to ovirt-engine
 func (i *IdentityService) Probe(_ context.Context, _ *csi.ProbeRequest) (*csi.ProbeResponse, error) {
+	if i.ovirtClient == nil {
+		return nil, status.Error(codes.FailedPrecondition, "Could not initialize connection to ovirt-engine")
+	}
+
 	err := i.ovirtClient.Test()
 	if err != nil {
 		klog.Errorf("Could not get connection %v", err)

@@ -23,25 +23,20 @@ type OvirtCSIDriver struct {
 
 // NewOvirtCSIDriver creates a driver instance
 func NewOvirtCSIDriver(ovirtClient ovirtclient.Client, nodeId ovirtclient.VMID) *OvirtCSIDriver {
-	var d *OvirtCSIDriver
+	d := &OvirtCSIDriver{
+		IdentityService: &IdentityService{ovirtClient},
+		ovirtClient:     ovirtClient,
+	}
+	if ovirtClient == nil {
+		return d
+	}
+
 	if string(nodeId) == "" {
 		klog.Info("Creating driver for controller")
-
-		// controller plugin
-		d = &OvirtCSIDriver{
-			IdentityService:   &IdentityService{ovirtClient},
-			ControllerService: &ControllerService{ovirtClient: ovirtClient},
-			ovirtClient:       ovirtClient,
-		}
+		d.ControllerService = &ControllerService{ovirtClient: ovirtClient}
 	} else {
 		klog.Info("Creating driver for node")
-
-		// node plugin
-		d = &OvirtCSIDriver{
-			IdentityService: &IdentityService{ovirtClient},
-			NodeService:     &NodeService{nodeId: nodeId, ovirtClient: ovirtClient},
-			ovirtClient:     ovirtClient,
-		}
+		d.NodeService = &NodeService{nodeId: nodeId, ovirtClient: ovirtClient}
 	}
 
 	return d

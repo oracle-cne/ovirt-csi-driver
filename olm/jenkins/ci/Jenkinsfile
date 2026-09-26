@@ -1,7 +1,7 @@
 @Library('olcne-pipeline') _
 import com.oracle.olcne.pipeline.BranchPattern
 
-String version = '4.21.1'
+String version = '4.21.2'
 String imgTag  = "v" + version
 
 olcnePipeline(

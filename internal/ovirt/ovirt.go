@@ -22,12 +22,16 @@ func NewClient() (ovirtclient.Client, error) {
 	}
 	logger := kloglogger.New()
 	//TODO: HANDLE VERBOSE
-	client, err := ovirtclient.New(
+	// Do not verify the engine connection while constructing the client. The
+	// driver must remain running while an engine is temporarily unavailable so
+	// its readiness probe can report the outage and recover without a restart.
+	client, err := ovirtclient.NewWithVerify(
 		ovirtConfig.URL,
 		ovirtConfig.Username,
 		ovirtConfig.Password,
 		tls,
 		logger,
+		nil,
 		nil,
 	)
 
