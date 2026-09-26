@@ -31,6 +31,8 @@ Requires:       systemd-libs
 Requires:       libuuid
 Requires:       inih
 Requires:       userspace-rcu
+Requires:       e2fsprogs-libs
+Requires:       libcom_err
 
 %description
 CSI driver for oVirt
