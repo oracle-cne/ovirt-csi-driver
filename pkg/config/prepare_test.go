@@ -171,6 +171,42 @@ func TestPrepareOvirtConfigFromEnvRequiresCAFileWhenCABundleProvided(t *testing.
 	}
 }
 
+func TestOvirtConfigFromEnvUsesPrepareInputsWithoutWritingFiles(t *testing.T) {
+	t.Setenv(ovirtURLEnvVar, "https://engine.example.test/ovirt-engine/api")
+	t.Setenv(ovirtUsernameEnvVar, "admin@internal")
+	t.Setenv(ovirtPasswordEnvVar, "test-password")
+	t.Setenv(ovirtCABundleEnvVar, "test-ca-bundle")
+	t.Setenv(ovirtCAFileEnvVar, "/not-created/ovirt-engine-ca.pem")
+
+	var logs []string
+	config, err := OvirtConfigFromEnv(false, func(format string, args ...interface{}) {
+		logs = append(logs, format)
+	})
+	if err != nil {
+		t.Fatalf("OvirtConfigFromEnv returned error: %v", err)
+	}
+	if config.URL != "https://engine.example.test/ovirt-engine/api" {
+		t.Fatalf("unexpected URL: %q", config.URL)
+	}
+	if config.Username != "admin@internal" {
+		t.Fatalf("unexpected username: %q", config.Username)
+	}
+	if config.Password != "test-password" {
+		t.Fatalf("unexpected password")
+	}
+	if config.CABundle != "test-ca-bundle" {
+		t.Fatalf("unexpected CA bundle")
+	}
+	if len(logs) == 0 {
+		t.Fatal("expected verbose flow logging")
+	}
+	for _, log := range logs {
+		if strings.Contains(log, "test-password") || strings.Contains(log, "test-ca-bundle") {
+			t.Fatalf("log format must not include secret values: %q", log)
+		}
+	}
+}
+
 func assertFileMode(t *testing.T, path string, expected os.FileMode) {
 	t.Helper()
 

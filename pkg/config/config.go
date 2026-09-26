@@ -38,6 +38,9 @@ type Config struct {
 	Password string `yaml:"ovirt_password,omitempty"`
 	Base64   string `yaml:"ovirt_base64,omitempty"`
 	CAFile   string `yaml:"ovirt_cafile,omitempty"`
+	// CABundle is populated only when configuration is read directly from the
+	// environment. It is deliberately excluded from serialized configuration.
+	CABundle string `yaml:"-"`
 	Insecure bool   `yaml:"ovirt_insecure,omitempty"`
 }
 
@@ -118,45 +121,21 @@ func PrepareOvirtConfigFromEnv(options PrepareOvirtConfigOptions) error {
 	}
 	logf("Resolved oVirt config output path: %s", configPath)
 
-	url, err := requiredEnv(ovirtURLEnvVar, logf)
+	preparedConfig, err := OvirtConfigFromEnv(options.Insecure, logf)
 	if err != nil {
 		return err
 	}
-	username, err := requiredEnv(ovirtUsernameEnvVar, logf)
-	if err != nil {
-		return err
-	}
-	password, err := requiredEnv(ovirtPasswordEnvVar, logf)
-	if err != nil {
-		return err
-	}
-
-	caBundle, caBundleProvided := os.LookupEnv(ovirtCABundleEnvVar)
-	if caBundleProvided && caBundle != "" {
-		logf("Detected non-empty %s; CA bundle file will be written", ovirtCABundleEnvVar)
-	} else {
-		logf("No non-empty %s detected; CA bundle file will not be written", ovirtCABundleEnvVar)
-	}
-
-	caFilePath := ""
+	caBundle := preparedConfig.CABundle
 	if caBundle != "" {
-		caFilePath = options.CAFilePath
-		if caFilePath == "" {
+		preparedConfig.CAFile = options.CAFilePath
+		if preparedConfig.CAFile == "" {
 			logf("No explicit CA file path provided; checking %s", ovirtCAFileEnvVar)
-			caFilePath, _ = os.LookupEnv(ovirtCAFileEnvVar)
+			preparedConfig.CAFile, _ = os.LookupEnv(ovirtCAFileEnvVar)
 		}
-		if caFilePath == "" {
+		if preparedConfig.CAFile == "" {
 			return fmt.Errorf("%s must be set when %s is set", ovirtCAFileEnvVar, ovirtCABundleEnvVar)
 		}
-		logf("Resolved oVirt CA bundle output path: %s", caFilePath)
-	}
-
-	preparedConfig := Config{
-		URL:      url,
-		Username: username,
-		Password: password,
-		CAFile:   caFilePath,
-		Insecure: options.Insecure,
+		logf("Resolved oVirt CA bundle output path: %s", preparedConfig.CAFile)
 	}
 
 	logf("Serializing oVirt config content")
@@ -182,18 +161,66 @@ func PrepareOvirtConfigFromEnv(options PrepareOvirtConfigOptions) error {
 	}
 
 	if caBundle != "" {
-		logf("Ensuring oVirt CA bundle directory exists: %s", filepath.Dir(caFilePath))
-		if err := os.MkdirAll(filepath.Dir(caFilePath), os.FileMode(0700)); err != nil {
+		logf("Ensuring oVirt CA bundle directory exists: %s", filepath.Dir(preparedConfig.CAFile))
+		if err := os.MkdirAll(filepath.Dir(preparedConfig.CAFile), os.FileMode(0700)); err != nil {
 			return fmt.Errorf("error creating ovirt CA bundle directory: %v", err)
 		}
-		logf("Writing oVirt CA bundle file: %s", caFilePath)
-		if err := ioutil.WriteFile(caFilePath, []byte(caBundle), os.FileMode(0600)); err != nil {
+		logf("Writing oVirt CA bundle file: %s", preparedConfig.CAFile)
+		if err := ioutil.WriteFile(preparedConfig.CAFile, []byte(caBundle), os.FileMode(0600)); err != nil {
 			return fmt.Errorf("error writing ovirt CA bundle file: %v", err)
 		}
 	}
 
 	logf("Finished oVirt config preparation")
 	return nil
+}
+
+// OvirtConfigFromEnv reads the same inputs as --prepare-ovirt-config without
+// writing a configuration or CA file. Its verbose logging reports only flow,
+// environment variable names, and file paths; it never logs secret values.
+func OvirtConfigFromEnv(insecure bool, logf func(format string, args ...interface{})) (*Config, error) {
+	if logf == nil {
+		logf = func(string, ...interface{}) {}
+	}
+
+	logf("Starting direct oVirt configuration read from environment variables")
+	url, err := requiredEnv(ovirtURLEnvVar, logf)
+	if err != nil {
+		return nil, err
+	}
+	username, err := requiredEnv(ovirtUsernameEnvVar, logf)
+	if err != nil {
+		return nil, err
+	}
+	password, err := requiredEnv(ovirtPasswordEnvVar, logf)
+	if err != nil {
+		return nil, err
+	}
+
+	caBundle, caBundleProvided := os.LookupEnv(ovirtCABundleEnvVar)
+	if caBundleProvided && caBundle != "" {
+		logf("Detected non-empty %s; direct validation will use it in memory", ovirtCABundleEnvVar)
+	} else {
+		logf("No non-empty %s detected; direct validation will not use an in-memory CA bundle", ovirtCABundleEnvVar)
+	}
+
+	caFilePath := ""
+	if caBundle != "" {
+		caFilePath, _ = os.LookupEnv(ovirtCAFileEnvVar)
+		if caFilePath != "" {
+			logf("Detected %s; no file will be written for direct validation", ovirtCAFileEnvVar)
+		}
+	}
+
+	logf("Finished direct oVirt configuration read from environment variables")
+	return &Config{
+		URL:      url,
+		Username: username,
+		Password: password,
+		CAFile:   caFilePath,
+		CABundle: caBundle,
+		Insecure: insecure,
+	}, nil
 }
 
 type preparedConfigFile struct {
