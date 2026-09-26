@@ -27,6 +27,7 @@ Requires:       util-linux
 Requires:       libblkid
 Requires:       libmount
 Requires:       libsmartcols
+Requires:       systemd-libs
 
 %description
 CSI driver for oVirt
