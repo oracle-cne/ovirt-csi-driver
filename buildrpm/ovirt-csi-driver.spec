@@ -24,6 +24,7 @@ Requires:       e2fsprogs
 Requires:       xfsprogs
 Requires:       util-linux-core
 Requires:       util-linux
+Requires:       libblkid
 
 %description
 CSI driver for oVirt
