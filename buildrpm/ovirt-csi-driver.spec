@@ -30,6 +30,7 @@ Requires:       libsmartcols
 Requires:       systemd-libs
 Requires:       libuuid
 Requires:       inih
+Requires:       userspace-rcu
 
 %description
 CSI driver for oVirt
