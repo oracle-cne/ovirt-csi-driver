@@ -8,7 +8,7 @@ RUN microdnf update --enablerepo='ol9_UEKR7' && \
        /bin/colrm \
        /bin/column \
        /bin/look \
-       /bin/gencat
+       /bin/gencat \
        /bin/hexdump \
        /bin/more \
        /bin/rename \
