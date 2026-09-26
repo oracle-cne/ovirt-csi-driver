@@ -29,6 +29,7 @@ Requires:       libmount
 Requires:       libsmartcols
 Requires:       systemd-libs
 Requires:       libuuid
+Requires:       inih
 
 %description
 CSI driver for oVirt
