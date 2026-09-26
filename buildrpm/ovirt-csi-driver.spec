@@ -28,6 +28,7 @@ Requires:       libblkid
 Requires:       libmount
 Requires:       libsmartcols
 Requires:       systemd-libs
+Requires:       libuuid
 
 %description
 CSI driver for oVirt
