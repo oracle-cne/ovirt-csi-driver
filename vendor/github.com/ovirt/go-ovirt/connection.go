@@ -22,6 +22,7 @@ package ovirtsdk
 import (
 	"crypto/tls"
 	"crypto/x509"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -31,6 +32,7 @@ import (
 	"os"
 	"reflect"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -64,6 +66,11 @@ type Connection struct {
 	// SSO attributes
 	ssoToken     string
 	ssoTokenName string
+	// Shared through connection copies made by the higher-level client.
+	ssoLock            *sync.RWMutex
+	ssoTokenAcquiredAt time.Time
+	ssoTokenIssuedAt   time.Time
+	ssoTokenExpiresAt  time.Time
 }
 
 // URL returns the base URL of this connection.
@@ -155,6 +162,16 @@ func (c *Connection) FollowLink(object Href) (interface{}, error) {
 
 // authenticate uses OAuth to do authentication
 func (c *Connection) authenticate() (string, error) {
+	c.ssoLock.RLock()
+	token := c.ssoToken
+	c.ssoLock.RUnlock()
+	if token != "" {
+		return token, nil
+	}
+
+	c.ssoLock.Lock()
+	defer c.ssoLock.Unlock()
+	// Another request may have authenticated while this one waited to write.
 	if c.ssoToken == "" {
 		token, err := c.getAccessToken()
 		if err != nil {
@@ -163,6 +180,157 @@ func (c *Connection) authenticate() (string, error) {
 		c.ssoToken = token
 	}
 	return c.ssoToken, nil
+}
+
+// TokenExpiry returns the cached JWT expiration deadline. An unauthenticated
+// connection returns zero and nil; an opaque or malformed token has no known
+// deadline. JWT claims are used only for scheduling, never for authorization.
+func (c *Connection) TokenExpiry() (time.Time, error) {
+	c.ssoLock.RLock()
+	defer c.ssoLock.RUnlock()
+	if c.ssoToken != "" && c.ssoTokenExpiresAt.IsZero() {
+		return time.Time{}, errors.New("access token has no usable JWT exp claim")
+	}
+	return c.ssoTokenExpiresAt, nil
+}
+
+// tokenExpiry reads the JWT payload, not the unrelated exp field in the SSO
+// response. Errors deliberately exclude token contents and decoder details.
+func tokenExpiry(token string) (time.Time, error) {
+	_, expiresAt, err := tokenTimes(token)
+	return expiresAt, err
+}
+
+// tokenTimes reads issuance and expiry together. A missing iat is represented
+// by zero; the measured acquisition time then supplies the scheduling start.
+func tokenTimes(token string) (time.Time, time.Time, error) {
+	parts := strings.Split(token, ".")
+	if len(parts) != 3 {
+		return time.Time{}, time.Time{}, errors.New("access token is not a JWT")
+	}
+	payload, err := base64.RawURLEncoding.DecodeString(parts[1])
+	if err != nil {
+		return time.Time{}, time.Time{}, errors.New("access token JWT payload is invalid")
+	}
+	var claims struct {
+		IssuedAt  *int64 `json:"iat"`
+		ExpiresAt *int64 `json:"exp"`
+	}
+	if json.Unmarshal(payload, &claims) != nil || claims.ExpiresAt == nil ||
+		*claims.ExpiresAt <= 0 || *claims.ExpiresAt > 253402300799 {
+		return time.Time{}, time.Time{}, errors.New("access token has no usable JWT timing claims")
+	}
+	var issuedAt time.Time
+	if claims.IssuedAt != nil {
+		if *claims.IssuedAt <= 0 || *claims.IssuedAt >= *claims.ExpiresAt {
+			return time.Time{}, time.Time{}, errors.New("access token has no usable JWT timing claims")
+		}
+		issuedAt = time.Unix(*claims.IssuedAt, 0)
+	}
+	return issuedAt, time.Unix(*claims.ExpiresAt, 0), nil
+}
+
+// ReconnectPolicy selects either elapsed time since token acquisition or a
+// percentage of the JWT lifetime. Exactly one field must be nonzero.
+type ReconnectPolicy struct {
+	Interval           time.Duration
+	LifetimePercentage int
+}
+
+// Validate requires one positive interval or one percentage strictly below 100.
+func (p ReconnectPolicy) Validate() error {
+	if p.Interval > 0 && p.LifetimePercentage == 0 {
+		return nil
+	}
+	if p.Interval == 0 && p.LifetimePercentage >= 1 && p.LifetimePercentage <= 99 {
+		return nil
+	}
+	return errors.New("reconnect requires either a positive interval or a lifetime percentage from 1 through 99")
+}
+
+// The caller holds ssoLock. Preserve the default for existing SDK callers.
+func (c *Connection) tokenReconnectDue(now time.Time) (bool, error) {
+	return c.tokenReconnectDueWithPolicy(now, ReconnectPolicy{LifetimePercentage: 90})
+}
+
+func (c *Connection) tokenReconnectDueWithPolicy(now time.Time, policy ReconnectPolicy) (bool, error) {
+	if c.ssoToken == "" {
+		return false, nil
+	}
+	if policy.Interval > 0 {
+		if c.ssoTokenAcquiredAt.IsZero() {
+			return false, errors.New("access token has no acquisition time; interval renewal cannot be scheduled")
+		}
+		return !now.Before(c.ssoTokenAcquiredAt.Add(policy.Interval)), nil
+	}
+	if c.ssoTokenExpiresAt.IsZero() {
+		return false, errors.New("access token has no usable JWT exp claim; renewal cannot be scheduled")
+	}
+	issuedAt := c.ssoTokenIssuedAt
+	if issuedAt.IsZero() {
+		issuedAt = c.ssoTokenAcquiredAt
+	}
+	// Divide before multiplying to avoid overflowing long token lifetimes.
+	lifetime := c.ssoTokenExpiresAt.Sub(issuedAt)
+	remainingPercentage := time.Duration(100 - policy.LifetimePercentage)
+	leadTime := lifetime/100*remainingPercentage + lifetime%100*remainingPercentage/100
+	return !now.Before(c.ssoTokenExpiresAt.Add(-leadTime)), nil
+}
+
+// ReconnectDue checks a configured deadline without authenticating or changing
+// the active connection. Omitting the policy preserves the 90-percent default.
+func (c *Connection) ReconnectDue(now time.Time, policies ...ReconnectPolicy) (bool, error) {
+	if len(policies) > 1 {
+		return false, errors.New("only one reconnect policy may be supplied")
+	}
+	policy := ReconnectPolicy{LifetimePercentage: 90}
+	if len(policies) == 1 {
+		policy = policies[0]
+	}
+	if err := policy.Validate(); err != nil {
+		return false, err
+	}
+	c.ssoLock.RLock()
+	defer c.ssoLock.RUnlock()
+	return c.tokenReconnectDueWithPolicy(now, policy)
+}
+
+// Authenticate obtains and caches authentication on this connection. The
+// higher-level client uses a detached candidate so login failures leave the
+// active connection intact. This does not verify API authorization.
+func (c *Connection) Authenticate() error {
+	_, err := c.authenticate()
+	return err
+}
+
+// ReplaceAuthentication publishes an authenticated candidate without replacing
+// the connection, transport, or reader mutex used by existing service handles.
+// The caller serializes reconnect operations; SDK readers are synchronized here.
+func (c *Connection) ReplaceAuthentication(candidate *Connection) error {
+	if candidate == nil || candidate.url == nil || c.url == nil ||
+		candidate.url.String() != c.url.String() || candidate.username != c.username {
+		return errors.New("replacement authentication must belong to the same engine and user")
+	}
+	// Snapshot before locking the destination to avoid nesting connection locks.
+	candidate.ssoLock.RLock()
+	token := candidate.ssoToken
+	acquiredAt := candidate.ssoTokenAcquiredAt
+	issuedAt := candidate.ssoTokenIssuedAt
+	expiresAt := candidate.ssoTokenExpiresAt
+	candidate.ssoLock.RUnlock()
+	if token == "" {
+		return errors.New("replacement connection has not authenticated")
+	}
+	if !expiresAt.IsZero() && !expiresAt.After(time.Now()) {
+		return errors.New("replacement authentication has already expired")
+	}
+	c.ssoLock.Lock()
+	defer c.ssoLock.Unlock()
+	c.ssoToken = token
+	c.ssoTokenAcquiredAt = acquiredAt
+	c.ssoTokenIssuedAt = issuedAt
+	c.ssoTokenExpiresAt = expiresAt
+	return nil
 }
 
 // Close releases the resources used by this connection.
@@ -180,26 +348,39 @@ func (c *Connection) CloseIfRevokeSSOToken(logout bool) error {
 }
 
 // getAccessToken obtains the access token from SSO to be used for bearer authentication.
+// The caller must hold ssoLock for writing.
 func (c *Connection) getAccessToken() (string, error) {
 	if c.ssoToken == "" {
-		// Build the URL and parameters required for the request:
-		url, parameters := c.buildSsoAuthRequest()
-		// Send the response and wait for the request:
-		ssoResp, err := c.getSsoResponse(url, parameters)
+		token, err := c.requestAccessToken()
 		if err != nil {
 			return "", err
 		}
-		// Top level array already handled in getSsoResponse() generically.
-		if ssoResp.SsoError != "" {
-			return "", &AuthError{
-				baseError{
-					Msg: fmt.Sprintf("Error during SSO authentication %s : %s", ssoResp.SsoErrorCode, ssoResp.SsoError),
-				},
-			}
-		}
-		c.ssoToken = ssoResp.AccessToken
+		c.ssoToken = token
+		c.ssoTokenAcquiredAt = time.Now()
+		// Preserve support for opaque tokens: API authentication can still work,
+		// but proactive renewal must report that the expiry is unknown.
+		c.ssoTokenIssuedAt, c.ssoTokenExpiresAt, _ = tokenTimes(token)
 	}
 	return c.ssoToken, nil
+}
+
+// requestAccessToken fetches a token without changing the active authentication
+// state. The caller holds ssoLock for writing and publishes the token only after success.
+func (c *Connection) requestAccessToken() (string, error) {
+	url, parameters := c.buildSsoAuthRequest()
+	ssoResp, err := c.getSsoResponse(url, parameters)
+	if err != nil {
+		return "", err
+	}
+	if ssoResp.SsoError != "" {
+		return "", &AuthError{baseError: baseError{
+			Msg: fmt.Sprintf("Error during SSO authentication %s : %s", ssoResp.SsoErrorCode, ssoResp.SsoError),
+		}}
+	}
+	if ssoResp.AccessToken == "" {
+		return "", errors.New("SSO response did not contain an access token")
+	}
+	return ssoResp.AccessToken, nil
 }
 
 // Revoke the SSO access token.
@@ -351,6 +532,7 @@ func (c *Connection) SystemService() *SystemService {
 func NewConnectionBuilder() *ConnectionBuilder {
 	return &ConnectionBuilder{
 		conn: &Connection{
+			ssoLock:      &sync.RWMutex{},
 			ssoTokenName: "access_token"},
 		err: nil}
 }
