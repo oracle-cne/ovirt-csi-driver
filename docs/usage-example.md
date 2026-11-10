@@ -230,3 +230,109 @@ This document shows how to use the ovirt-csi-driver that was automatically insta
 In addition, the document also describes the steps required for manually installing the ovirt-csi-driver from 
 the catalog.
 
+
+# Token renewal
+
+The CSI Identity `Probe` checks the access token's JWT `exp` claim before testing
+API access. The SDK reads this Unix-seconds deadline from the JWT payload when
+each token is acquired. It does not use the outer SSO response's `exp` field,
+which can report `9223372036854775807` even when the JWT has a finite lifetime.
+JWT decoding is used only for renewal scheduling; the Engine validates API
+authorization. No additional network request is needed to obtain the deadline.
+
+By default, renewal becomes due at 90 percent of the token's lifetime, calculated from its
+JWT `iat` (issued-at) and `exp` claims. If `iat` is absent, the SDK uses 90 percent
+of the remaining lifetime measured when the token is acquired. A JWT valid for
+four hours and forty-eight minutes is therefore due for renewal after four
+hours, nineteen minutes and twelve seconds. The first probe
+after the calculated threshold calls `ReconnectIfDue`, which uses the same
+reconnect implementation as an explicit `Reconnect` call. Regular probes must continue running for proactive renewal; the
+driver does not start a separate renewal timer. Probe frequency must be shorter
+than the renewal lead time to ensure a check occurs before expiration.
+
+Choose one of these arguments on the driver container:
+
+```yaml
+# Percentage of actual JWT validity; this is also the default.
+args:
+  - --token-renewal-percentage=90
+```
+
+```yaml
+# Alternatively, renew five minutes after each successful token acquisition.
+args:
+  - --token-renewal-interval=5m
+```
+
+Percentage values must be integers from 1 through 99. The interval accepts
+positive Go durations, such as `30s`, `5m`, or `1h30m`. Supplying both arguments,
+including an explicitly supplied default percentage, rejects startup before any
+API connection is created. Omitting both retains the 90-percent default.
+The configured policy is logged at startup; deadline checks are logged at
+verbosity 4. The arguments apply to controller and node driver processes.
+
+Interval mode measures elapsed time from receipt of the token, independent of
+JWT `iat` and `exp`, and also supports opaque tokens. It does not shorten the
+interval to match token or SSO expiry. Set the interval, plus the maximum time
+between probes, below the shortest applicable token/session lifetime.
+Percentage mode follows each token's actual expiry, including session caps,
+and therefore adapts when the configured lifetime changes. Neither mode starts
+a background timer: reconnect occurs on the first probe at or after its deadline.
+
+Both entry points serialize through the existing client reconnect mutex. The
+scheduled entry point checks the deadline after acquiring that mutex, so a
+concurrent reconnect can satisfy the deadline without a duplicate login.
+Reconnect builds and authenticates a detached candidate, verifies API access
+(or runs the configured verifier against that candidate), and then publishes
+the authentication state to the stable SDK connection.
+
+Successful reconnect updates the shared token, so existing controller, node,
+context, SDK, and service handles use it on subsequent requests. Failed login,
+verification, or publication retains the old
+token and its deadline, allowing the next probe to retry. In percentage mode, a replacement must
+contain a usable JWT expiry later than both the current time and the previous
+token's expiry before a scheduled reconnect becomes active. Interval mode and explicit reconnect
+also support opaque tokens and replacements with an unchanged expiry. Explicit reconnect does
+not require the old token to be near expiry. Readiness
+continues to reflect whether the API connection test succeeds with the active
+token. Renewal attempts and results are logged without token or password values;
+expiry checks are available at verbosity 4. In percentage mode, tokens without a usable JWT `exp`
+claim produce a scheduling warning instead of falling back to an assumed
+lifetime. Such tokens remain available for the API connection test.
+
+With Keycloak 15, the JWT expiry is also capped at the SSO session maximum
+(and applicable client session maximum). The percentage check therefore follows
+the earlier deadline when a session limit is shorter than the configured access
+token lifetime. Renewal uses a fresh password login with the configured
+credentials, rather than the OAuth refresh-token grant: each successful login
+creates a new Keycloak session with its own maximum lifetime. A maximum on the
+original session does not carry over to the replacement session. No additional
+SSO-session lifetime is assumed or configured in the driver.
+
+Cached-token reads and deadline checks use the SDK's shared read lock. Initial
+authentication and publication use its write lock. The active connection's
+write lock is not held while a reconnect candidate authenticates or verifies,
+so concurrent API calls can continue using the existing token. The SDK
+connection, its transport, and its reader lock are never overwritten during a
+reconnect. Initial construction stays lazy when verification is disabled.
+
+The SDK calculates the configured acquisition-interval or JWT-percentage
+renewal threshold and the driver checks it through `ReconnectIfDue`. Renewal
+support extends the oVirt SDK and client. The `go.mod` replacements point to
+`github.com/oracle-cne/go-ovirt` and `github.com/oracle-cne/go-ovirt-client/v2`.
+Both replacements pin published revisions from the forks' `1-token-refresh`
+branches. `GOWORK=off go mod vendor` regenerates the snapshot from those
+revisions without sibling checkouts. See `hack/forks/README.md` for exact pins,
+transferable patches, and published dependency build commands.
+
+The authoritative renewal code and tests are in the sibling SDK and v2 client
+fork checkouts, based on the exact dependency commits listed in
+`hack/forks/README.md`. Regenerated vendor snapshots do not include dependency
+test files. From the parent development directory, run the renewal tests with:
+
+```shell
+export GOWORK="$PWD/go.work.local"
+go test -race ./go-ovirt
+go test -race ./go-ovirt-client -run 'Test(Reconnect|MockScheduledReconnect)' -client=mock
+go test -race ./ovirt-csi-driver/pkg/service
+```

@@ -183,6 +183,12 @@ github.com/onsi/gomega v0.0.0-20170829124025-dcabb60a477c/go.mod h1:C1qb7wdrVGGV
 github.com/onsi/gomega v1.7.0/go.mod h1:ex+gbHU/CVuBBDIJjb2X0qEXbFg53c61hWP/1CpauHY=
 github.com/onsi/gomega v1.36.1 h1:bJDPBO7ibjxcbHMgSCoo4Yj18UWbKDlLwX1x9sybDcw=
 github.com/onsi/gomega v1.36.1/go.mod h1:PvZbdDc8J6XJEpDK4HCuRBm8a6Fzp9/DmhC9C7yFlog=
+github.com/oracle-cne/go-ovirt v0.0.0-20261110164932-977e9a0f2d54 h1:LixJj1fGRyXtDyISDyk3nKa/YTu+iGAXf1UUtJyV9jM=
+github.com/oracle-cne/go-ovirt v0.0.0-20261110164932-977e9a0f2d54/go.mod h1:Zkdj9/rW6eyuw0uOeEns6O3pP5G2ak+bI/tgkQ/tEZI=
+github.com/oracle-cne/go-ovirt-client/v2 v2.1.1-0.20261110165028-ad84082c2d85 h1:go9uMKPY/nQNtZngTMPvCvvUevihC5TiZZGEjQYjgfU=
+github.com/oracle-cne/go-ovirt-client/v2 v2.1.1-0.20261110165028-ad84082c2d85/go.mod h1:K2zIB037Z8kqWGEAOJyP3pUQcdEtaayfyG36BvfGFUc=
+github.com/oracle-cne/go-ovirt-client/v2 v2.1.1-0.20261110171322-7ef47993f10d h1:cWKYlizbSZJRntHjmgQcX/6TETifxtIw/R4Ci1vCg4Q=
+github.com/oracle-cne/go-ovirt-client/v2 v2.1.1-0.20261110171322-7ef47993f10d/go.mod h1:K2zIB037Z8kqWGEAOJyP3pUQcdEtaayfyG36BvfGFUc=
 github.com/ovirt/go-ovirt v0.0.0-20220427092237-114c47f2835c h1:jXRFpl7+W0YZj/fghoYuE4vJWW/KeQGvdrhnRwRGtAY=
 github.com/ovirt/go-ovirt v0.0.0-20220427092237-114c47f2835c/go.mod h1:Zkdj9/rW6eyuw0uOeEns6O3pP5G2ak+bI/tgkQ/tEZI=
 github.com/ovirt/go-ovirt-client-log-klog/v2 v2.0.0 h1:lQJGJ1VIDMgFiU4J5yXo9npvCgHFabELfrwiNsbPifg=

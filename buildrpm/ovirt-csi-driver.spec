@@ -5,7 +5,7 @@
 %endif
 
 %global app_name                ovirt-csi-driver
-%global app_version             4.21.2
+%global app_version             4.21.3
 %global oracle_release_version  1
 %global _buildhost              build-ol%{?oraclelinux}-%{?_arch}.oracle.com
 
@@ -51,6 +51,9 @@ install -m 755 bin/%{app_name} %{buildroot}/%{app_name}
 /%{app_name}
 
 %changelog
+* Tue Nov 10 2026 Daniel Krasinski <daniel.krasinski@oracle.com> - 4.21.3-1
+- Ensure that tokens are refreshed when they are about to expire
+
 * Sat Sep 26 2026 Daniel Krasinski <daniel.krasinski@oracle.com> - 4.21.2-1
 - Improve dependency declaration and image building
 
