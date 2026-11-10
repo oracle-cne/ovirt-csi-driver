@@ -24,8 +24,11 @@ type OvirtCSIDriver struct {
 // NewOvirtCSIDriver creates a driver instance
 func NewOvirtCSIDriver(ovirtClient ovirtclient.Client, nodeId ovirtclient.VMID) *OvirtCSIDriver {
 	d := &OvirtCSIDriver{
-		IdentityService: &IdentityService{ovirtClient},
-		ovirtClient:     ovirtClient,
+		IdentityService: &IdentityService{
+			ovirtClient:        ovirtClient,
+			TokenRenewalPolicy: ovirtclient.ReconnectPolicy{LifetimePercentage: 90},
+		},
+		ovirtClient: ovirtClient,
 	}
 	if ovirtClient == nil {
 		return d

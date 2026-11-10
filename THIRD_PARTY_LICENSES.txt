@@ -495,14 +495,8 @@ github.com/ovirt/go-ovirt-client-log-klog/v2
 SPDX:Unlicense
 
 == Copyright
-Copyright (c) 2017 Joey <majunjiev@gmail.com>.
-Copyright (c) 2017 huihui <huihui.fu@csc2c.com.cn>.
-Copyright (c) 2019 Red Hat, Inc.
-Copyright (c) 2020 Douglas Schilling Landgraf <dougsland@redhat.com>
-Copyright (c) 2020 Douglas Schilling Landgraf <dougsland@redhat.com>.
-Copyright (c) 2020 Evgeny Slutsky <eslutsky@redhat.com>
-Copyright (c) 2020 huihui <huihui.fu@cs2c.com.cn>.
-Copyright (c) 2020 huihui0311 <huihui.fu@cs2c.com.cn>.
+Copyright 2021 Janos 86970079+janosdebugs@users.noreply.github.com
+Copyright 2022 Janos Bonic 86970079+janosdebugs@users.noreply.github.com
 
 --------------------------------- (separator) ----------------------------------
 
