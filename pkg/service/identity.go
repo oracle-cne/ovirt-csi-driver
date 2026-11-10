@@ -10,9 +10,15 @@ import (
 	"k8s.io/klog"
 )
 
+type tokenReconnector interface {
+	ReconnectIfDue(...ovirtclient.ReconnectPolicy) (bool, error)
+}
+
 // IdentityService of ovirt-csi-driver
 type IdentityService struct {
 	ovirtClient ovirtclient.Client
+	// TokenRenewalPolicy is configured before the driver starts serving probes.
+	TokenRenewalPolicy ovirtclient.ReconnectPolicy
 }
 
 // GetPluginInfo returns the vendor name and version - set in build time
@@ -51,6 +57,18 @@ func (i *IdentityService) Probe(_ context.Context, _ *csi.ProbeRequest) (*csi.Pr
 		return nil, status.Error(codes.FailedPrecondition, "Could not initialize connection to ovirt-engine")
 	}
 
+	if reconnector, ok := i.ovirtClient.(tokenReconnector); ok {
+		klog.V(4).Infof("Checking oVirt reconnect: interval=%s lifetime-percentage=%d", i.TokenRenewalPolicy.Interval, i.TokenRenewalPolicy.LifetimePercentage)
+		if reconnected, err := reconnector.ReconnectIfDue(i.TokenRenewalPolicy); err != nil {
+			// Keep serving with the old token if it still works. A failed renewal
+			// does not reset its deadline, so the next probe will retry.
+			klog.Warning("oVirt scheduled reconnect failed; testing the current token and retrying on the next probe")
+		} else if reconnected {
+			klog.Info("oVirt reconnected; testing the active connection")
+		} else {
+			klog.V(4).Info("oVirt reconnect is not due; testing the current connection")
+		}
+	}
 	err := i.ovirtClient.Test()
 	if err != nil {
 		klog.Errorf("Could not get connection %v", err)

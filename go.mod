@@ -2,6 +2,12 @@ module github.com/ovirt/csi-driver
 
 go 1.25.0
 
+// Pin the published 1-token-refresh branches to reproducible fork revisions.
+replace (
+	github.com/ovirt/go-ovirt => github.com/oracle-cne/go-ovirt v0.0.0-20261110164932-977e9a0f2d54
+	github.com/ovirt/go-ovirt-client/v2 => github.com/oracle-cne/go-ovirt-client/v2 v2.1.1-0.20261110171322-7ef47993f10d
+)
+
 require (
 	github.com/container-storage-interface/spec v1.2.0
 	github.com/golang/protobuf v1.5.4
