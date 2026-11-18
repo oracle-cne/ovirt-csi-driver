@@ -5,7 +5,7 @@
 %endif
 
 %global app_name                ovirt-csi-driver
-%global app_version             4.21.3
+%global app_version             4.21.4
 %global oracle_release_version  1
 %global _buildhost              build-ol%{?oraclelinux}-%{?_arch}.oracle.com
 
@@ -35,6 +35,9 @@ OVIRT_CSI_DRIVER_VERSION=%{app_version} bash olm/build-image.sh
 /usr/local/share/olcne/%{app_name}.tar
 
 %changelog
+* Wed Nov 18 2026 Daniel Krasinski <daniel.krasinski@oracle.com> - 4.21.4-1
+- Ensure that tokens are refreshed when they are about to expire for non-JWT tokens
+
 * Tue Nov 10 2026 Daniel Krasinski <daniel.krasinski@oracle.com> - 4.21.3-1
 - Ensure that tokens are refreshed when they are about to expire
 
