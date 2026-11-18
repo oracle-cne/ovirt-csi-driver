@@ -195,6 +195,7 @@ func NewWithVerify(
 		extraSettings,
 		rand.New(rand.NewSource(time.Now().UnixNano())), //nolint:gosec
 		verify,
+		false,
 	}
 
 	if err := client.Reconnect(); err != nil {

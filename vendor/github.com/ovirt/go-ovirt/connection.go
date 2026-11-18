@@ -31,6 +31,7 @@ import (
 	"net/url"
 	"os"
 	"reflect"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -182,14 +183,13 @@ func (c *Connection) authenticate() (string, error) {
 	return c.ssoToken, nil
 }
 
-// TokenExpiry returns the cached JWT expiration deadline. An unauthenticated
-// connection returns zero and nil; an opaque or malformed token has no known
-// deadline. JWT claims are used only for scheduling, never for authorization.
+// TokenExpiry returns the cached expiration deadline from JWT claims or the
+// legacy SSO response. Timing is used only for scheduling, never authorization.
 func (c *Connection) TokenExpiry() (time.Time, error) {
 	c.ssoLock.RLock()
 	defer c.ssoLock.RUnlock()
 	if c.ssoToken != "" && c.ssoTokenExpiresAt.IsZero() {
-		return time.Time{}, errors.New("access token has no usable JWT exp claim")
+		return time.Time{}, errors.New("access token has no usable expiry metadata")
 	}
 	return c.ssoTokenExpiresAt, nil
 }
@@ -231,7 +231,7 @@ func tokenTimes(token string) (time.Time, time.Time, error) {
 }
 
 // ReconnectPolicy selects either elapsed time since token acquisition or a
-// percentage of the JWT lifetime. Exactly one field must be nonzero.
+// percentage of the token lifetime. Exactly one field must be nonzero.
 type ReconnectPolicy struct {
 	Interval           time.Duration
 	LifetimePercentage int
@@ -264,7 +264,7 @@ func (c *Connection) tokenReconnectDueWithPolicy(now time.Time, policy Reconnect
 		return !now.Before(c.ssoTokenAcquiredAt.Add(policy.Interval)), nil
 	}
 	if c.ssoTokenExpiresAt.IsZero() {
-		return false, errors.New("access token has no usable JWT exp claim; renewal cannot be scheduled")
+		return false, errors.New("access token has no usable expiry metadata; renewal cannot be scheduled")
 	}
 	issuedAt := c.ssoTokenIssuedAt
 	if issuedAt.IsZero() {
@@ -351,36 +351,63 @@ func (c *Connection) CloseIfRevokeSSOToken(logout bool) error {
 // The caller must hold ssoLock for writing.
 func (c *Connection) getAccessToken() (string, error) {
 	if c.ssoToken == "" {
-		token, err := c.requestAccessToken()
+		if c.logFunc != nil {
+			c.logFunc("Requesting fresh SSO authentication")
+		}
+		requestedAt := time.Now()
+		response, err := c.requestAccessToken()
 		if err != nil {
 			return "", err
 		}
+		token := response.AccessToken
 		c.ssoToken = token
-		c.ssoTokenAcquiredAt = time.Now()
-		// Preserve support for opaque tokens: API authentication can still work,
-		// but proactive renewal must report that the expiry is unknown.
+		c.ssoTokenAcquiredAt = requestedAt
+		// JWT timing takes precedence: Keycloak's outer exp may be unbounded.
 		c.ssoTokenIssuedAt, c.ssoTokenExpiresAt, _ = tokenTimes(token)
+		if !strings.Contains(token, ".") {
+			c.ssoTokenExpiresAt = legacyTokenExpiry(response.ExpiresAt)
+		}
+		if c.logFunc != nil {
+			c.logFunc("SSO authentication cached; expiry known=%t", !c.ssoTokenExpiresAt.IsZero())
+		}
 	}
 	return c.ssoToken, nil
 }
 
 // requestAccessToken fetches a token without changing the active authentication
 // state. The caller holds ssoLock for writing and publishes the token only after success.
-func (c *Connection) requestAccessToken() (string, error) {
+func (c *Connection) requestAccessToken() (*ssoResponseJSON, error) {
 	url, parameters := c.buildSsoAuthRequest()
 	ssoResp, err := c.getSsoResponse(url, parameters)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	if ssoResp.SsoError != "" {
-		return "", &AuthError{baseError: baseError{
+		return nil, &AuthError{baseError: baseError{
 			Msg: fmt.Sprintf("Error during SSO authentication %s : %s", ssoResp.SsoErrorCode, ssoResp.SsoError),
 		}}
 	}
 	if ssoResp.AccessToken == "" {
-		return "", errors.New("SSO response did not contain an access token")
+		return nil, errors.New("SSO response did not contain an access token")
 	}
-	return ssoResp.AccessToken, nil
+	return ssoResp, nil
+}
+
+// Legacy Engine SSO serializes AuthRecord.VALID_TO as an epoch millisecond
+// string, not a lifetime in seconds. Long.MAX_VALUE means no known deadline.
+// Invalid metadata must not prevent authentication or disclose response data.
+func legacyTokenExpiry(raw json.RawMessage) time.Time {
+	value := string(raw)
+	if strings.HasPrefix(value, "\"") {
+		if json.Unmarshal(raw, &value) != nil {
+			return time.Time{}
+		}
+	}
+	milliseconds, err := strconv.ParseInt(value, 10, 64)
+	if err != nil || milliseconds <= 0 || milliseconds > 253402300799999 {
+		return time.Time{}
+	}
+	return time.Unix(milliseconds/1000, milliseconds%1000*int64(time.Millisecond))
 }
 
 // Revoke the SSO access token.
@@ -410,9 +437,10 @@ type ssoResponseJSONParent struct {
 }
 
 type ssoResponseJSON struct {
-	AccessToken  string `json:"access_token"`
-	SsoError     string `json:"error"`
-	SsoErrorCode string `json:"error_code"`
+	AccessToken  string          `json:"access_token"`
+	ExpiresAt    json.RawMessage `json:"exp"`
+	SsoError     string          `json:"error"`
+	SsoErrorCode string          `json:"error_code"`
 }
 
 // Execute a get request to the SSO server and return the response.

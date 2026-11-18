@@ -2,6 +2,32 @@ This document describes how to use the ovirt-csi-driver with an OLVM CAPI cluste
 and configure it to create PVs in an OLVM storage domain.  This allows you to
 create Pods that mount OLVM storage volumes as specified by a Kubernetes StorageClass. 
 
+## Authentication renewal
+
+CSI probes check whether authentication needs renewal. By default, renewal runs
+at 90 percent of token validity, using JWT `iat`/`exp` claims for Keycloak engines
+or the separate SSO response `exp` for legacy engines with opaque access tokens.
+Legacy `exp` is an absolute Unix timestamp in milliseconds (including when sent
+as a JSON string), not a duration. JWT claims take precedence over response
+metadata. Unknown or unbounded expiry is never replaced with an assumed lifetime.
+
+Legacy SSO can also expire an inactive session before the advertised `exp`.
+When a probe receives the engine's `invalid_grant` expiration response, the
+client performs a fresh credential login, verifies API access, publishes the
+replacement authentication to shared clients, and retries the connection check.
+A failed replacement leaves the current authentication intact for the next probe.
+
+Use `--token-renewal-percentage=75` to renew at another percentage (1 through 99),
+or `--token-renewal-interval=5m` to renew after a configured acquisition interval.
+The flags are mutually exclusive. Choose an interval below the engine's confirmed
+session timeout, allowing time for probes and login requests; `5m` is an example,
+not an inferred engine timeout. Logs report renewal and recovery without printing
+tokens. These settings apply to both controller and node driver containers.
+
+The legacy format and inactivity behavior are defined by the engine's
+[token response](https://github.com/oVirt/ovirt-engine/blob/master/backend/manager/modules/enginesso/src/main/java/org/ovirt/engine/core/sso/servlets/OAuthTokenServlet.java)
+and [session cleanup](https://github.com/oVirt/ovirt-engine/blob/master/backend/manager/modules/enginesso/src/main/java/org/ovirt/engine/core/sso/service/TokenCleanupService.java).
+
 # Step 1: Create OLVM CAPI cluster  
 First, you need an OLVM CAPI cluster with a configured storage domain.  See [Creating an OVLM CAPI cluster](https://github.com/oracle-cne/ocne/blob/main/doc/cluster-management/olvm.md)  
 When you create an OLVM Kubernetes cluster with the `ocne cluster start --provider olvm`, 

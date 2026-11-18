@@ -37,7 +37,7 @@ var (
 	validateOvirtConfig             = flag.Bool("validate-ovirt-config", false, "Validate oVirt environment configuration authentication and API access, then exit")
 	livenessPort                    = flag.Int("livez-port", defaultLivenessPort, "Port on which to serve the liveness endpoint")
 	tokenRenewalInterval            = flag.Duration("token-renewal-interval", 0, "Renew authentication after this duration since token acquisition (for example 5m); mutually exclusive with --token-renewal-percentage")
-	tokenRenewalPercentage          = flag.Int("token-renewal-percentage", 90, "Renew authentication at this percentage of JWT validity (1-99); mutually exclusive with --token-renewal-interval")
+	tokenRenewalPercentage          = flag.Int("token-renewal-percentage", 90, "Renew authentication at this percentage of token validity (JWT claims or legacy SSO expiry, 1-99); mutually exclusive with --token-renewal-interval")
 )
 
 const (
