@@ -55,7 +55,6 @@ github.com/ghodss/yaml v0.0.0-20150909031657-73d445a93680/go.mod h1:4dBDuWmgqj2H
 github.com/go-kit/kit v0.8.0/go.mod h1:xBxKIO96dXMWWy0MnWVtmwkA9/13aqxPnvrjFYMA2as=
 github.com/go-logfmt/logfmt v0.3.0/go.mod h1:Qt1PoO58o5twSAckw1HlFXLmHsOX5/0LbT9GBnD5lWE=
 github.com/go-logr/logr v0.1.0/go.mod h1:ixOQHD9gLJUVQQ2ZOR7zLEifBX6tGkNJF4QyIY7sIas=
-github.com/go-logr/logr v0.4.0/go.mod h1:z6/tIYblkpsD+a4lm/fGIIU9mZ+XfAiaFtq7xTgseGU=
 github.com/go-logr/logr v1.4.3 h1:CjnDlHq8ikf6E492q6eKboGOC0T8CDaOvkHCIg8idEI=
 github.com/go-logr/logr v1.4.3/go.mod h1:9T104GzyrTigFIr8wt5mBrctHMim0Nb2HLGrmQ40KvY=
 github.com/go-logr/stdr v1.2.2 h1:hSWxHoqTgW2S2qGc0LTAI563KZ5YKYRhT3MFKZMbjag=
@@ -187,8 +186,6 @@ github.com/oracle-cne/go-ovirt v0.0.0-20261118143823-e36f4708242c h1:0VxXULZHxZK
 github.com/oracle-cne/go-ovirt v0.0.0-20261118143823-e36f4708242c/go.mod h1:Zkdj9/rW6eyuw0uOeEns6O3pP5G2ak+bI/tgkQ/tEZI=
 github.com/oracle-cne/go-ovirt-client/v2 v2.1.1-0.20261118143903-f5391c13f95d h1:PnD3fzIWAuAiKHt5XK44X6+DYNo1+787OPqNZgNT7QM=
 github.com/oracle-cne/go-ovirt-client/v2 v2.1.1-0.20261118143903-f5391c13f95d/go.mod h1:K2zIB037Z8kqWGEAOJyP3pUQcdEtaayfyG36BvfGFUc=
-github.com/ovirt/go-ovirt-client-log-klog/v2 v2.0.0 h1:lQJGJ1VIDMgFiU4J5yXo9npvCgHFabELfrwiNsbPifg=
-github.com/ovirt/go-ovirt-client-log-klog/v2 v2.0.0/go.mod h1:Bo83WSGfqYsatXlrOnG0jp8fvrmf5xGzJnpJqVsS+1s=
 github.com/ovirt/go-ovirt-client-log/v3 v3.0.0 h1:uvACVHYhYPMkNJrrgWiABcfELB6qoFfsDDUTbpb4Jv4=
 github.com/ovirt/go-ovirt-client-log/v3 v3.0.0/go.mod h1:chKKxCv4lRjxezrTG+EIhkWXGhDAWByglPVXh/iYdnQ=
 github.com/peterbourgon/diskv v2.0.1+incompatible/go.mod h1:uqqh8zWWbv1HBMNONnaR/tNboyR3/BZd58JJSHlUSCU=
@@ -409,7 +406,6 @@ k8s.io/klog v0.0.0-20181102134211-b9b56d5dfc92/go.mod h1:Gq+BEi5rUBO/HRz0bTSXDUc
 k8s.io/klog v0.3.0/go.mod h1:Gq+BEi5rUBO/HRz0bTSXDUcqjScdoY3a9IHpCEIOOfk=
 k8s.io/klog v1.0.0 h1:Pt+yjF5aB1xDSVbau4VsWe+dQNzA0qv1LlXdC2dF6Q8=
 k8s.io/klog v1.0.0/go.mod h1:4Bi6QPql/J/LkTDqv7R/cd3hPo4k2DG6Ptcz060Ez5I=
-k8s.io/klog/v2 v2.10.0/go.mod h1:hy9LJ/NvuK+iVyP4Ehqva4HxZG/oXyIS3n3Jmire4Ec=
 k8s.io/klog/v2 v2.140.0 h1:Tf+J3AH7xnUzZyVVXhTgGhEKnFqye14aadWv7bzXdzc=
 k8s.io/klog/v2 v2.140.0/go.mod h1:o+/RWfJ6PwpnFn7OyAG3QnO47BFsymfEfrz6XyYSSp0=
 k8s.io/kube-openapi v0.0.0-20191107075043-30be4d16710a/go.mod h1:1TqjTSzOxsLGIKfj0lK8EeCP7K1iUG65v09OM0/WG5E=

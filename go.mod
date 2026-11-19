@@ -12,7 +12,6 @@ require (
 	github.com/container-storage-interface/spec v1.2.0
 	github.com/golang/protobuf v1.5.4
 	github.com/kubernetes-csi/csi-lib-utils v0.7.0
-	github.com/ovirt/go-ovirt-client-log-klog/v2 v2.0.0
 	github.com/ovirt/go-ovirt-client-log/v3 v3.0.0
 	github.com/ovirt/go-ovirt-client/v2 v2.1.0
 	github.com/pkg/errors v0.9.1
