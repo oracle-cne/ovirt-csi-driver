@@ -70,6 +70,7 @@ type oVirtClient struct {
 	extraSettings   ExtraSettings
 	nonSecureRandom *rand.Rand
 	verify          func(connection Client) error
+	verifying       bool
 }
 
 func (o *oVirtClient) WithContext(ctx context.Context) Client {
@@ -86,6 +87,7 @@ func (o *oVirtClient) WithContext(ctx context.Context) Client {
 		o.extraSettings,
 		o.nonSecureRandom,
 		o.verify,
+		o.verifying,
 	}
 }
 
@@ -93,11 +95,11 @@ func (o *oVirtClient) GetContext() context.Context {
 	return o.ctx
 }
 
-// ReconnectPolicy configures the SDK's acquisition interval or JWT percentage.
+// ReconnectPolicy configures the SDK's acquisition interval or token percentage.
 type ReconnectPolicy = ovirtsdk4.ReconnectPolicy
 
 // ReconnectIfDue uses the same login and publication path as Reconnect. With no
-// policy it reconnects at 90 percent of the cached JWT lifetime.
+// policy it reconnects at 90 percent of the cached token lifetime.
 func (o *oVirtClient) ReconnectIfDue(policies ...ReconnectPolicy) (bool, error) {
 	return o.reconnect(true, policies...)
 }
@@ -175,12 +177,12 @@ func (o *oVirtClient) reconnect(onlyIfDue bool, policies ...ReconnectPolicy) (bo
 		}
 		newExpiry, err := candidate.TokenExpiry()
 		if err != nil {
-			o.logger.Warningf("Replacement JWT expiry is unavailable; retaining active authentication")
+			o.logger.Warningf("Replacement token expiry is unavailable; retaining active authentication")
 			return false, err
 		}
 		if newExpiry.IsZero() || !newExpiry.After(oldExpiry) {
-			o.logger.Warningf("Replacement JWT does not extend expiry; retaining active authentication")
-			return false, newError(EUnidentified, "replacement JWT does not extend the active expiry")
+			o.logger.Warningf("Replacement token does not extend expiry; retaining active authentication")
+			return false, newError(EUnidentified, "replacement token does not extend the active expiry")
 		}
 	}
 	if err := o.conn.ReplaceAuthentication(candidate); err != nil {
@@ -188,9 +190,9 @@ func (o *oVirtClient) reconnect(onlyIfDue bool, policies ...ReconnectPolicy) (bo
 		return false, err
 	}
 	if expiry, err := o.conn.TokenExpiry(); err == nil && !expiry.IsZero() {
-		o.logger.Infof("Reconnect completed; active JWT expires at %s", expiry.UTC().Format(time.RFC3339))
+		o.logger.Infof("Reconnect completed; active token expires at %s", expiry.UTC().Format(time.RFC3339))
 	} else {
-		o.logger.Infof("Reconnect completed; active token has no known JWT expiry")
+		o.logger.Infof("Reconnect completed; active token has no known expiry")
 	}
 	return true, nil
 }
@@ -222,6 +224,8 @@ func (o *oVirtClient) verifyCandidate(candidate *ovirtsdk4.Connection) error {
 	verificationClient.conn = candidate
 	verificationClient.reconnectLock = &sync.Mutex{}
 	verificationClient.verify = nil
+	// A rejected candidate must fail verification, never recursively log in.
+	verificationClient.verifying = true
 	return o.verify(&verificationClient)
 }
 
